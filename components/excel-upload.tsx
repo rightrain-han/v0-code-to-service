@@ -322,6 +322,7 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                     <TableHead className="sticky top-0 bg-background">용도</TableHead>
                     <TableHead className="sticky top-0 bg-background">구역</TableHead>
                     <TableHead className="sticky top-0 bg-background">경고표지</TableHead>
+                    <TableHead className="sticky top-0 bg-background">보호장구</TableHead>
                     <TableHead className="sticky top-0 bg-background">PDF파일</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -344,6 +345,15 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                           {item.warningSymbols.map((s, i) => (
                             <Badge key={i} variant="secondary" className="text-xs">
                               {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {item.hazards.map((h, i) => (
+                            <Badge key={i} variant="outline" className="text-xs bg-blue-50">
+                              {h}
                             </Badge>
                           ))}
                         </div>

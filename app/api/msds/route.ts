@@ -36,11 +36,8 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      console.log("[v0] Supabase not configured, returning sample data")
       return NextResponse.json(SAMPLE_DATA)
     }
-
-    console.log("[v0] Attempting to query msds_items table...")
 
     const { data: msdsItems, error: msdsError } = await supabase
       .from("msds_items")
@@ -52,20 +49,11 @@ export async function GET() {
       `)
       .order("id", { ascending: true })
 
-    // 에러 상세 로깅
     if (msdsError) {
-      console.log("[v0] MSDS query error code:", msdsError.code)
-      console.log("[v0] MSDS query error message:", msdsError.message)
-      console.log("[v0] MSDS query error details:", msdsError.details)
-      console.log("[v0] MSDS query error hint:", msdsError.hint)
-      console.log("[v0] Returning sample data due to error")
       return NextResponse.json(SAMPLE_DATA)
     }
 
-    console.log("[v0] Query successful, found", msdsItems?.length || 0, "items")
-
     if (!msdsItems || msdsItems.length === 0) {
-      console.log("[v0] No MSDS items found, returning sample data")
       return NextResponse.json(SAMPLE_DATA)
     }
 
@@ -74,9 +62,6 @@ export async function GET() {
       supabase.from("warning_symbols").select("*"),
       supabase.from("protective_equipment").select("*"),
     ])
-
-    console.log("[v0] Warning symbols query:", warningSymbolsResponse.error ? "error" : "success")
-    console.log("[v0] Protective equipment query:", protectiveEquipmentResponse.error ? "error" : "success")
 
     const warningSymbols = warningSymbolsResponse.data || []
     const protectiveEquipment = protectiveEquipmentResponse.data || []
@@ -135,10 +120,8 @@ export async function GET() {
       }
     })
 
-    console.log("[v0] Successfully processed", enrichedItems.length, "MSDS items")
     return NextResponse.json(enrichedItems)
   } catch (err) {
-    console.log("[v0] MSDS API exception:", err)
     return NextResponse.json(SAMPLE_DATA)
   }
 }

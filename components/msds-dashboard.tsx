@@ -39,7 +39,8 @@ export default function MsdsDashboard() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [isDbRestoring, setIsDbRestoring] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false) // Declare showMobileMenu and setShowMobileMenu
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -58,6 +59,7 @@ export default function MsdsDashboard() {
   const loadMsdsData = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true)
+      setIsDbRestoring(false)
 
       const [msdsResponse, symbolsResponse, equipmentResponse] = await Promise.all([
         fetch("/api/msds", { cache: "no-store" }),
@@ -68,6 +70,12 @@ export default function MsdsDashboard() {
       let msdsData: MsdsItem[] = []
       let symbolsData: WarningSymbol[] = []
       let equipmentData: ProtectiveEquipment[] = []
+
+      if (msdsResponse.status === 521 || symbolsResponse.status === 521 || equipmentResponse.status === 521) {
+        setIsDbRestoring(true)
+        setError("데이터베이스 서버가 복원 중입니다. 잠시 후 다시 시도해주세요.")
+        return
+      }
 
       if (msdsResponse.ok) {
         msdsData = await msdsResponse.json()
@@ -211,13 +219,27 @@ export default function MsdsDashboard() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center p-8 bg-background/10 backdrop-blur rounded-xl">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-white text-xl font-bold mb-2">데이터 로딩 오류</h2>
-          <p className="text-red-300 mb-4">{error}</p>
-          <Button onClick={() => loadMsdsData()} className="bg-red-600 hover:bg-red-700">
-            다시 시도
-          </Button>
+        <div className="text-center p-8 bg-background/10 backdrop-blur rounded-xl max-w-md">
+          {isDbRestoring ? (
+            <>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-500 border-t-transparent mx-auto mb-4"></div>
+              <h2 className="text-white text-xl font-bold mb-2">데이터베이스 복원 중</h2>
+              <p className="text-yellow-300 mb-2">Supabase 프로젝트가 일시 중지 상태에서 복원되고 있습니다.</p>
+              <p className="text-gray-400 text-sm mb-4">보통 3-5분 정도 소요됩니다.</p>
+              <Button onClick={() => loadMsdsData()} className="bg-yellow-600 hover:bg-yellow-700">
+                다시 시도
+              </Button>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-white text-xl font-bold mb-2">데이터 로딩 오류</h2>
+              <p className="text-red-300 mb-4">{error}</p>
+              <Button onClick={() => loadMsdsData()} className="bg-red-600 hover:bg-red-700">
+                다시 시도
+              </Button>
+            </>
+          )}
         </div>
       </div>
     )
