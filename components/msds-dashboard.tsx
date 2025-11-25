@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Search, Eye, Download, RefreshCw, Menu, Shield, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment } from "@/types/msds"
 
 const STATUS_COLORS: Record<string, string> = {
@@ -63,27 +64,27 @@ function MsdsDashboard() {
       const symbolsData = await symbolsRes.json()
       const equipmentData = await equipmentRes.json()
 
+      console.log("[v0] msdsData:", msdsData)
+      console.log("[v0] symbolsData:", symbolsData)
+      console.log("[v0] equipmentData:", equipmentData)
+
       if (msdsData.dbRestoring || symbolsData.dbRestoring || equipmentData.dbRestoring) {
         setDbStatus("restoring")
       } else {
         setDbStatus("connected")
       }
 
-      if (msdsData.items) {
-        const processedItems = msdsData.items.map((item: MsdsItem) => ({
-          ...item,
-          warningSymbolsData: item.warningSymbols
-            ?.map((wsId: string) => symbolsData.symbols?.find((s: WarningSymbol) => s.id === wsId))
-            .filter(Boolean),
-          protectiveEquipmentData: item.hazards
-            ?.map((peId: string) => equipmentData.equipment?.find((e: ProtectiveEquipment) => e.id === peId))
-            .filter(Boolean),
-        }))
-        setData(processedItems)
-      }
+      const symbols = symbolsData.symbols || symbolsData || []
+      const equipment = equipmentData.equipment || equipmentData || []
 
-      if (symbolsData.symbols) setWarningSymbols(symbolsData.symbols)
-      if (equipmentData.equipment) setProtectiveEquipment(equipmentData.equipment)
+      setWarningSymbols(symbols)
+      setProtectiveEquipment(equipment)
+
+      if (msdsData.items) {
+        setData(msdsData.items)
+        console.log("[v0] First item warningSymbolsData:", msdsData.items[0]?.warningSymbolsData)
+        console.log("[v0] First item protectiveEquipmentData:", msdsData.items[0]?.protectiveEquipmentData)
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error)
       setDbStatus("error")
@@ -319,7 +320,6 @@ function MsdsDashboard() {
                     </div>
                   )}
 
-                  {/* 경고 표지 */}
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
@@ -328,13 +328,24 @@ function MsdsDashboard() {
                     <div className="flex flex-wrap gap-1">
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
                         item.warningSymbolsData.map((symbol) => (
-                          <Badge
+                          <div
                             key={symbol.id}
-                            variant="outline"
-                            className="text-xs bg-gray-100 text-gray-700 border-gray-300"
+                            className="w-8 h-8 rounded border border-gray-200 bg-white flex items-center justify-center overflow-hidden"
+                            title={symbol.name}
                           >
-                            {symbol.name.substring(0, 1)}
-                          </Badge>
+                            <Image
+                              src={symbol.imageUrl || `/warning-symbols/${symbol.id}.svg`}
+                              alt={symbol.name}
+                              width={28}
+                              height={28}
+                              className="object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                                target.parentElement!.innerHTML = `<span class="text-xs font-bold text-red-600">${symbol.name?.substring(0, 1) || "!"}</span>`
+                              }}
+                            />
+                          </div>
                         ))
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
@@ -342,7 +353,6 @@ function MsdsDashboard() {
                     </div>
                   </div>
 
-                  {/* 보호 장구 */}
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
                       <Shield className="w-3 h-3" />
@@ -351,13 +361,24 @@ function MsdsDashboard() {
                     <div className="flex flex-wrap gap-1">
                       {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
                         item.protectiveEquipmentData.map((equipment) => (
-                          <Badge
+                          <div
                             key={equipment.id}
-                            variant="outline"
-                            className="text-xs bg-gray-100 text-gray-700 border-gray-300"
+                            className="w-8 h-8 rounded border border-gray-200 bg-white flex items-center justify-center overflow-hidden"
+                            title={equipment.name}
                           >
-                            {equipment.name.substring(0, 1)}
-                          </Badge>
+                            <Image
+                              src={equipment.imageUrl || `/protective-equipment/${equipment.id}.svg`}
+                              alt={equipment.name}
+                              width={28}
+                              height={28}
+                              className="object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                                target.parentElement!.innerHTML = `<span class="text-xs font-bold text-blue-600">${equipment.name?.substring(0, 1) || "!"}</span>`
+                              }}
+                            />
+                          </div>
                         ))
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
@@ -365,6 +386,7 @@ function MsdsDashboard() {
                     </div>
                   </div>
 
+                  {/* 사용 장소 */}
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5">사용 장소</p>
                     <div className="flex flex-wrap gap-1">
@@ -387,6 +409,7 @@ function MsdsDashboard() {
                     </div>
                   </div>
 
+                  {/* 관련 법규 */}
                   <div>
                     <p className="text-xs text-gray-500 mb-1.5">관련 법규</p>
                     <div className="flex flex-wrap gap-1">

@@ -7,13 +7,13 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json(DEFAULT_PROTECTIVE_EQUIPMENT)
+      return NextResponse.json({ equipment: DEFAULT_PROTECTIVE_EQUIPMENT })
     }
 
     const { data, error } = await supabase.from("protective_equipment").select("*").order("name", { ascending: true })
 
     if (error || !data || data.length === 0) {
-      return NextResponse.json(DEFAULT_PROTECTIVE_EQUIPMENT)
+      return NextResponse.json({ equipment: DEFAULT_PROTECTIVE_EQUIPMENT })
     }
 
     const formatted = data.map((e) => ({
@@ -25,10 +25,10 @@ export async function GET() {
       isActive: e.is_active,
     }))
 
-    return NextResponse.json(formatted)
+    return NextResponse.json({ equipment: formatted })
   } catch (err) {
     console.error("[v0] Protective-equipment API error:", err)
-    return NextResponse.json(DEFAULT_PROTECTIVE_EQUIPMENT)
+    return NextResponse.json({ equipment: DEFAULT_PROTECTIVE_EQUIPMENT })
   }
 }
 

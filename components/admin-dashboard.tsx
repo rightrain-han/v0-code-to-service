@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ImageUpload } from "@/components/image-upload"
 import {
   RefreshCw,
   Plus,
@@ -153,7 +154,8 @@ export default function AdminDashboard() {
       const res = await fetch("/api/msds", { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
-        setMsdsItems(Array.isArray(data) ? data : [])
+        const items = data.items || data
+        setMsdsItems(Array.isArray(items) ? items : [])
       }
     } catch (error) {
       console.error("Error loading MSDS items:", error)
@@ -167,7 +169,8 @@ export default function AdminDashboard() {
       const response = await fetch("/api/warning-symbols", { cache: "no-store" })
       if (response.ok) {
         const data = await response.json()
-        setWarningSymbols(Array.isArray(data) ? data : [])
+        const symbols = data.symbols || data
+        setWarningSymbols(Array.isArray(symbols) ? symbols : [])
       }
     } catch (error) {
       console.error("Error loading warning symbols:", error)
@@ -179,7 +182,8 @@ export default function AdminDashboard() {
       const response = await fetch("/api/protective-equipment", { cache: "no-store" })
       if (response.ok) {
         const data = await response.json()
-        setProtectiveEquipment(Array.isArray(data) ? data : [])
+        const equipment = data.equipment || data
+        setProtectiveEquipment(Array.isArray(equipment) ? equipment : [])
       }
     } catch (error) {
       console.error("Error loading protective equipment:", error)
@@ -839,8 +843,9 @@ export default function AdminDashboard() {
       {/* QR Code Modal */}
       <QRPrintModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} msdsItem={selectedQRItem} />
 
+      {/* Symbol Form Dialog */}
       <Dialog open={showSymbolForm} onOpenChange={setShowSymbolForm}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingSymbol ? "경고 표지 수정" : "새 경고 표지 추가"}</DialogTitle>
           </DialogHeader>
@@ -886,6 +891,14 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>이미지</Label>
+              <ImageUpload
+                currentImageUrl={symbolFormData.imageUrl}
+                onImageChange={(url) => setSymbolFormData({ ...symbolFormData, imageUrl: url })}
+                itemType="ghs"
+              />
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveSymbol}>저장</Button>
               <Button variant="outline" onClick={() => setShowSymbolForm(false)}>
@@ -896,8 +909,9 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Equipment Form Dialog */}
       <Dialog open={showEquipmentForm} onOpenChange={setShowEquipmentForm}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingEquipment ? "보호 장구 수정" : "새 보호 장구 추가"}</DialogTitle>
           </DialogHeader>
@@ -945,6 +959,14 @@ export default function AdminDashboard() {
                   <SelectItem value="foot">발 보호</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>이미지</Label>
+              <ImageUpload
+                currentImageUrl={equipmentFormData.imageUrl}
+                onImageChange={(url) => setEquipmentFormData({ ...equipmentFormData, imageUrl: url })}
+                itemType="prgear"
+              />
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveEquipment}>저장</Button>

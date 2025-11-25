@@ -32,8 +32,8 @@ interface ParsedMsdsData {
   usage: string
   reception: string[]
   laws: string[]
-  warningSymbols: string[]
-  hazards: string[]
+  warningSymbols: string[] // 숫자 ID를 그대로 유지
+  hazards: string[] // 숫자 ID를 그대로 유지
   description: string
   msdsNo: string
 }
@@ -44,26 +44,27 @@ interface UploadResult {
   error?: string
 }
 
-const GHS_SIGN_MAP: Record<string, string> = {
-  "1": "explosive",
-  "2": "flammable",
-  "3": "oxidizing",
-  "4": "gas_pressure",
-  "5": "corrosive",
-  "6": "toxic",
-  "7": "irritant",
-  "8": "health_hazard",
-  "9": "environmental",
+const GHS_DISPLAY_MAP: Record<string, string> = {
+  "1": "폭발성",
+  "2": "인화성",
+  "3": "산화성",
+  "4": "고압가스",
+  "5": "부식성",
+  "6": "급성독성",
+  "7": "자극성",
+  "8": "건강유해",
+  "9": "환경유해",
 }
 
-const PROPE_MAP: Record<string, string> = {
-  "1": "respiratory",
-  "2": "eye",
-  "3": "hand",
-  "4": "body",
-  "5": "foot",
-  "6": "face_shield",
-  "7": "apron",
+const PRGEAR_DISPLAY_MAP: Record<string, string> = {
+  "1": "보안경",
+  "2": "안면보호구",
+  "3": "방독마스크",
+  "4": "방진마스크",
+  "5": "내화학장갑",
+  "6": "내열장갑",
+  "7": "보호복",
+  "8": "안전화",
 }
 
 export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
@@ -79,8 +80,7 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     return ghsSign
       .split(",")
       .map((s) => s.trim())
-      .filter((s) => s)
-      .map((num) => GHS_SIGN_MAP[num] || `ghs_${num}`)
+      .filter((s) => s && !isNaN(Number(s)))
   }
 
   const parsePrope = (prope: string | undefined): string[] => {
@@ -88,8 +88,7 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     return prope
       .split(",")
       .map((s) => s.trim())
-      .filter((s) => s)
-      .map((num) => PROPE_MAP[num] || `prope_${num}`)
+      .filter((s) => s && !isNaN(Number(s)))
   }
 
   const parseArea = (area: string | undefined): string[] => {
@@ -179,8 +178,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
             usage: item.usage,
             reception: item.reception,
             laws: item.laws,
-            warningSymbols: item.warningSymbols,
-            hazards: item.hazards,
+            warningSymbols: item.warningSymbols, // 숫자 ID 배열
+            hazards: item.hazards, // 숫자 ID 배열
           }),
         })
 
@@ -344,7 +343,7 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                         <div className="flex flex-wrap gap-1">
                           {item.warningSymbols.map((s, i) => (
                             <Badge key={i} variant="secondary" className="text-xs">
-                              {s}
+                              {GHS_DISPLAY_MAP[s] || s}
                             </Badge>
                           ))}
                         </div>
@@ -353,7 +352,7 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                         <div className="flex flex-wrap gap-1">
                           {item.hazards.map((h, i) => (
                             <Badge key={i} variant="outline" className="text-xs bg-blue-50">
-                              {h}
+                              {PRGEAR_DISPLAY_MAP[h] || h}
                             </Badge>
                           ))}
                         </div>
@@ -449,7 +448,11 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           <div className="mt-3 pt-3 border-t">
             <p className="font-medium mb-1">GHS 경고표지 번호:</p>
             <p className="text-xs">
-              1=폭발성, 2=인화성, 3=산화성, 4=가스압력, 5=부식성, 6=독성, 7=자극성, 8=건강유해성, 9=환경유해성
+              1=폭발성, 2=인화성, 3=산화성, 4=고압가스, 5=부식성, 6=급성독성, 7=자극성, 8=건강유해, 9=환경유해
+            </p>
+            <p className="font-medium mb-1 mt-2">보호장구 번호:</p>
+            <p className="text-xs">
+              1=보안경, 2=안면보호구, 3=방독마스크, 4=방진마스크, 5=내화학장갑, 6=내열장갑, 7=보호복, 8=안전화
             </p>
           </div>
         </div>

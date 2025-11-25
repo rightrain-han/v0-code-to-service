@@ -7,13 +7,13 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json(DEFAULT_WARNING_SYMBOLS)
+      return NextResponse.json({ symbols: DEFAULT_WARNING_SYMBOLS })
     }
 
     const { data, error } = await supabase.from("warning_symbols").select("*").order("name", { ascending: true })
 
     if (error || !data || data.length === 0) {
-      return NextResponse.json(DEFAULT_WARNING_SYMBOLS)
+      return NextResponse.json({ symbols: DEFAULT_WARNING_SYMBOLS })
     }
 
     const formatted = data.map((s) => ({
@@ -25,10 +25,10 @@ export async function GET() {
       isActive: s.is_active,
     }))
 
-    return NextResponse.json(formatted)
+    return NextResponse.json({ symbols: formatted })
   } catch (err) {
     console.error("[v0] Warning-symbols API error:", err)
-    return NextResponse.json(DEFAULT_WARNING_SYMBOLS)
+    return NextResponse.json({ symbols: DEFAULT_WARNING_SYMBOLS })
   }
 }
 

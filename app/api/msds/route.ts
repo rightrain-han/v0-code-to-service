@@ -36,7 +36,7 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json(SAMPLE_DATA)
+      return NextResponse.json({ items: SAMPLE_DATA })
     }
 
     const { data: msdsItems, error: msdsError } = await supabase
@@ -50,21 +50,27 @@ export async function GET() {
       .order("id", { ascending: true })
 
     if (msdsError) {
-      return NextResponse.json(SAMPLE_DATA)
+      console.error("[v0] MSDS query error:", msdsError)
+      return NextResponse.json({ items: SAMPLE_DATA })
     }
 
     if (!msdsItems || msdsItems.length === 0) {
-      return NextResponse.json(SAMPLE_DATA)
+      console.log("[v0] No MSDS items found, returning sample data")
+      return NextResponse.json({ items: SAMPLE_DATA })
     }
 
-    // 경고 표지 및 보호 장비 데이터 조회
-    const [warningSymbolsResponse, protectiveEquipmentResponse] = await Promise.all([
+    const [warningSymbolsResponse, protectiveEquipmentResponse, locationOptionsResponse] = await Promise.all([
       supabase.from("warning_symbols").select("*"),
       supabase.from("protective_equipment").select("*"),
+      supabase.from("config_options").select("*").eq("type", "location"),
     ])
 
     const warningSymbols = warningSymbolsResponse.data || []
     const protectiveEquipment = protectiveEquipmentResponse.data || []
+    const locationMap: Record<string, string> = {}
+    ;(locationOptionsResponse.data || []).forEach((opt: { value: string; label: string }) => {
+      locationMap[opt.value] = opt.label
+    })
 
     // 데이터 변환
     const enrichedItems = msdsItems.map((item) => {
@@ -75,9 +81,28 @@ export async function GET() {
         []
 
       const configItems = item.msds_config_items || []
-      const reception = configItems
+
+      const receptionRaw = configItems
         .filter((c: { config_type: string }) => c.config_type === "reception")
         .map((c: { config_value: string }) => c.config_value)
+
+      // config_value가 "19,20,17" 형태의 쉼표 구분 문자열일 수 있음
+      const reception: string[] = []
+      receptionRaw.forEach((val: string) => {
+        // 쉼표로 분리된 ID들을 처리
+        const ids = val
+          .split(",")
+          .map((id: string) => id.trim())
+          .filter(Boolean)
+        ids.forEach((id: string) => {
+          // ID를 장소 이름으로 변환 (예: "19" -> "LNG 3호기 CPP")
+          const locationName = locationMap[id] || locationMap[id.padStart(2, "0")] || id
+          if (!reception.includes(locationName)) {
+            reception.push(locationName)
+          }
+        })
+      })
+
       const laws = configItems
         .filter((c: { config_type: string }) => c.config_type === "laws")
         .map((c: { config_value: string }) => c.config_value)
@@ -111,7 +136,7 @@ export async function GET() {
         pdfUrl: item.pdf_file_url || "",
         hazards: protectiveEquipmentIds,
         usage: item.usage || "",
-        reception,
+        reception, // 변환된 장소 이름 배열
         laws,
         warningSymbols: warningSymbolIds,
         warningSymbolsData,
@@ -120,9 +145,11 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json(enrichedItems)
+    console.log("[v0] Returning", enrichedItems.length, "MSDS items from DB")
+    return NextResponse.json({ items: enrichedItems })
   } catch (err) {
-    return NextResponse.json(SAMPLE_DATA)
+    console.error("[v0] MSDS API error:", err)
+    return NextResponse.json({ items: SAMPLE_DATA })
   }
 }
 
@@ -149,17 +176,19 @@ export async function POST(request: Request) {
     if (body.warningSymbols?.length > 0) {
       const warningSymbolInserts = body.warningSymbols.map((symbolId: string) => ({
         msds_id: msdsItem.id,
-        warning_symbol_id: symbolId,
+        warning_symbol_id: String(symbolId), // 숫자를 문자열로 변환
       }))
-      await supabase.from("msds_warning_symbols").insert(warningSymbolInserts)
+      const { error: wsError } = await supabase.from("msds_warning_symbols").insert(warningSymbolInserts)
+      if (wsError) console.error("[v0] Warning symbols insert error:", wsError)
     }
 
     if (body.hazards?.length > 0) {
       const protectiveEquipmentInserts = body.hazards.map((equipmentId: string) => ({
         msds_id: msdsItem.id,
-        protective_equipment_id: equipmentId,
+        protective_equipment_id: String(equipmentId), // 숫자를 문자열로 변환
       }))
-      await supabase.from("msds_protective_equipment").insert(protectiveEquipmentInserts)
+      const { error: peError } = await supabase.from("msds_protective_equipment").insert(protectiveEquipmentInserts)
+      if (peError) console.error("[v0] Protective equipment insert error:", peError)
     }
 
     const configInserts: { msds_id: number; config_type: string; config_value: string }[] = []
