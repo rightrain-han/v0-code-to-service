@@ -216,6 +216,9 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
 
         if (response.ok) {
           results.push({ success: true, name: item.name })
+        } else if (response.status === 409) {
+          // 중복 항목은 스킵 (오류로 표시하지 않음)
+          results.push({ success: true, name: item.name, error: "이미 존재 (스킵됨)" })
         } else {
           const errorData = await response.json()
           results.push({ success: false, name: item.name, error: errorData.error || "업로드 실패" })
