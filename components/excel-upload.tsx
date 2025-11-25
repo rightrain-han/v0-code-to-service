@@ -56,19 +56,6 @@ const GHS_DISPLAY_MAP: Record<string, string> = {
   "9": "환경유해",
 }
 
-// Excel 숫자 ID를 데이터베이스 문자열 ID로 매핑
-const GHS_TO_DB_ID_MAP: Record<string, string> = {
-  "1": "explosive",       // 폭발성
-  "2": "flammable",       // 인화성
-  "3": "oxidizing",       // 산화성
-  "4": "compressed_gas",  // 고압가스
-  "5": "corrosive",       // 부식성
-  "6": "toxic",           // 급성독성
-  "7": "irritant",        // 자극성
-  "8": "health_hazard",   // 건강유해
-  "9": "environmental",   // 환경유해
-}
-
 const PRGEAR_DISPLAY_MAP: Record<string, string> = {
   "1": "보안경",
   "2": "안면보호구",
@@ -80,18 +67,6 @@ const PRGEAR_DISPLAY_MAP: Record<string, string> = {
   "8": "안전화",
 }
 
-// Excel 보호장구 숫자 ID를 데이터베이스 문자열 ID로 매핑
-const PRGEAR_TO_DB_ID_MAP: Record<string, string> = {
-  "1": "safety_glasses",   // 보안경
-  "2": "face_shield",      // 안면보호구
-  "3": "gas_mask",         // 방독마스크
-  "4": "dust_mask",        // 방진마스크
-  "5": "chemical_gloves",  // 내화학장갑
-  "6": "heat_gloves",      // 내열장갑
-  "7": "protective_suit",  // 보호복
-  "8": "safety_shoes",     // 안전화
-}
-
 export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
   const [parsedData, setParsedData] = useState<ParsedMsdsData[]>([])
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([])
@@ -100,26 +75,20 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 숫자 ID를 데이터베이스 문자열 ID로 변환
   const parseGhsSigns = (ghsSign: string | undefined): string[] => {
     if (!ghsSign) return []
     return ghsSign
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s && !isNaN(Number(s)))
-      .map((numId) => GHS_TO_DB_ID_MAP[numId] || numId) // DB 문자열 ID로 변환
-      .filter((id) => id) // 변환 실패한 항목 제거
   }
 
-  // 숫자 ID를 데이터베이스 문자열 ID로 변환
   const parsePrope = (prope: string | undefined): string[] => {
     if (!prope) return []
     return prope
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s && !isNaN(Number(s)))
-      .map((numId) => PRGEAR_TO_DB_ID_MAP[numId] || numId) // DB 문자열 ID로 변환
-      .filter((id) => id) // 변환 실패한 항목 제거
   }
 
   const parseArea = (area: string | undefined): string[] => {
@@ -216,9 +185,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
 
         if (response.ok) {
           results.push({ success: true, name: item.name })
-        } else if (response.status === 409) {
-          // 중복 항목은 스킵 (오류로 표시하지 않음)
-          results.push({ success: true, name: item.name, error: "이미 존재 (스킵됨)" })
         } else {
           const errorData = await response.json()
           results.push({ success: false, name: item.name, error: errorData.error || "업로드 실패" })

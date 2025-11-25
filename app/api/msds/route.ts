@@ -181,22 +181,6 @@ export async function POST(request: Request) {
 
     const body = await request.json()
 
-    // 중복 체크: 같은 이름의 MSDS가 이미 존재하는지 확인
-    const { data: existingItem } = await supabase
-      .from("msds_items")
-      .select("id")
-      .eq("name", body.name)
-      .single()
-
-    if (existingItem) {
-      console.log(`[v0] MSDS item with name "${body.name}" already exists, skipping`)
-      return NextResponse.json({
-        success: false,
-        error: "duplicate",
-        message: `"${body.name}" 항목이 이미 존재합니다.`
-      }, { status: 409 })
-    }
-
     const { data: msdsItem, error: msdsError } = await supabase
       .from("msds_items")
       .insert({

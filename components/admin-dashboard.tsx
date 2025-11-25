@@ -336,47 +336,19 @@ export default function AdminDashboard() {
   }
 
   const handleSaveSymbol = async () => {
-    if (!symbolFormData.name.trim()) {
-      alert("이름을 입력해주세요.")
-      return
-    }
+    if (!editingSymbol) return
 
     try {
-      let response
-      const submitData = {
-        id: symbolFormData.id,
-        name: symbolFormData.name,
-        description: symbolFormData.description,
-        category: symbolFormData.category,
-        imageUrl: symbolFormData.imageUrl,
-        isActive: true,
-      }
-
-      if (editingSymbol) {
-        // 수정
-        response = await fetch(`/api/warning-symbols/${editingSymbol.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      } else {
-        // 새로 추가
-        if (!symbolFormData.id.trim()) {
-          alert("ID를 입력해주세요.")
-          return
-        }
-        response = await fetch("/api/warning-symbols", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      }
+      const response = await fetch(`/api/warning-symbols/${editingSymbol.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingSymbol),
+      })
 
       if (response.ok) {
         await loadWarningSymbols()
         setEditingSymbol(null)
         setIsSymbolDialogOpen(false)
-        showMessage("success", editingSymbol ? "경고 표지가 수정되었습니다." : "경고 표지가 추가되었습니다.")
       } else {
         const error = await response.json()
         alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
@@ -425,47 +397,19 @@ export default function AdminDashboard() {
   }
 
   const handleSaveEquipment = async () => {
-    if (!equipmentFormData.name.trim()) {
-      alert("이름을 입력해주세요.")
-      return
-    }
+    if (!editingEquipment) return
 
     try {
-      let response
-      const submitData = {
-        id: equipmentFormData.id,
-        name: equipmentFormData.name,
-        description: equipmentFormData.description,
-        category: equipmentFormData.category,
-        imageUrl: equipmentFormData.imageUrl,
-        isActive: true,
-      }
-
-      if (editingEquipment) {
-        // 수정
-        response = await fetch(`/api/protective-equipment/${editingEquipment.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      } else {
-        // 새로 추가
-        if (!equipmentFormData.id.trim()) {
-          alert("ID를 입력해주세요.")
-          return
-        }
-        response = await fetch("/api/protective-equipment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      }
+      const response = await fetch(`/api/protective-equipment/${editingEquipment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingEquipment),
+      })
 
       if (response.ok) {
         await loadProtectiveEquipment()
         setEditingEquipment(null)
         setIsEquipmentDialogOpen(false)
-        showMessage("success", editingEquipment ? "보호 장구가 수정되었습니다." : "보호 장구가 추가되었습니다.")
       } else {
         const error = await response.json()
         alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
