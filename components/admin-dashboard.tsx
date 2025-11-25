@@ -9,11 +9,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Plus, Edit, Trash2, QrCode, ArrowLeft, Search, AlertTriangle, Shield } from "lucide-react"
+import {
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
+  QrCode,
+  ArrowLeft,
+  Search,
+  AlertTriangle,
+  Shield,
+  FileSpreadsheet,
+} from "lucide-react"
 import Link from "next/link"
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment, ConfigOption } from "@/types/msds"
 import { DEFAULT_WARNING_SYMBOLS, DEFAULT_PROTECTIVE_EQUIPMENT } from "@/types/msds"
 import { QRPrintModal } from "./qr-print-modal"
+import { ExcelUpload } from "./excel-upload"
 
 interface FormData {
   id?: number
@@ -306,8 +318,12 @@ export default function AdminDashboard() {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="msds" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-lg">
             <TabsTrigger value="msds">MSDS 관리</TabsTrigger>
+            <TabsTrigger value="excel">
+              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              엑셀 업로드
+            </TabsTrigger>
             <TabsTrigger value="symbols">경고 표지</TabsTrigger>
             <TabsTrigger value="equipment">보호 장구</TabsTrigger>
           </TabsList>
@@ -485,7 +501,10 @@ export default function AdminDashboard() {
                               if (checked) {
                                 setFormData({ ...formData, laws: [...formData.laws, option.label] })
                               } else {
-                                setFormData({ ...formData, laws: formData.laws.filter((l) => l !== option.label) })
+                                setFormData({
+                                  ...formData,
+                                  laws: formData.laws.filter((l) => l !== option.label),
+                                })
                               }
                             }}
                           />
@@ -574,6 +593,11 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* Excel Upload Tab */}
+          <TabsContent value="excel" className="space-y-6">
+            <ExcelUpload onUploadComplete={loadMsdsItems} />
           </TabsContent>
 
           {/* Warning Symbols Tab */}
