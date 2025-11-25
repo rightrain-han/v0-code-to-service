@@ -110,7 +110,7 @@ export default function AdminDashboard() {
   const [protectiveEquipment, setProtectiveEquipment] = useState<ProtectiveEquipment[]>([])
 
   const [editingSymbol, setEditingSymbol] = useState<WarningSymbol | null>(null)
-  const [showSymbolForm, setShowSymbolForm] = useState(false)
+  const [isSymbolDialogOpen, setIsSymbolDialogOpen] = useState(false)
   const [symbolFormData, setSymbolFormData] = useState({
     id: "",
     name: "",
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
   })
 
   const [editingEquipment, setEditingEquipment] = useState<ProtectiveEquipment | null>(null)
-  const [showEquipmentForm, setShowEquipmentForm] = useState(false)
+  const [isEquipmentDialogOpen, setIsEquipmentDialogOpen] = useState(false)
   const [equipmentFormData, setEquipmentFormData] = useState({
     id: "",
     name: "",
@@ -320,7 +320,7 @@ export default function AdminDashboard() {
       category: symbol.category || "physical",
       imageUrl: symbol.imageUrl || "",
     })
-    setShowSymbolForm(true)
+    setIsSymbolDialogOpen(true)
   }
 
   const handleAddSymbol = () => {
@@ -332,49 +332,30 @@ export default function AdminDashboard() {
       category: "physical",
       imageUrl: "",
     })
-    setShowSymbolForm(true)
+    setIsSymbolDialogOpen(true)
   }
 
   const handleSaveSymbol = async () => {
+    if (!editingSymbol) return
+
     try {
-      if (!symbolFormData.name.trim()) {
-        showMessage("error", "경고 표지 이름을 입력해주세요.")
-        return
-      }
+      const response = await fetch(`/api/warning-symbols/${editingSymbol.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingSymbol),
+      })
 
-      const submitData = {
-        id: symbolFormData.id || `symbol_${Date.now()}`,
-        name: symbolFormData.name,
-        description: symbolFormData.description,
-        imageUrl: symbolFormData.imageUrl || "/placeholder.svg",
-        category: symbolFormData.category,
-        isActive: true,
-      }
-
-      let response
-      if (editingSymbol) {
-        response = await fetch(`/api/warning-symbols/${editingSymbol.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
+      if (response.ok) {
+        await loadWarningSymbols()
+        setEditingSymbol(null)
+        setIsSymbolDialogOpen(false)
       } else {
-        response = await fetch("/api/warning-symbols", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
+        const error = await response.json()
+        alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
       }
-
-      if (!response.ok) throw new Error("저장 실패")
-
-      await loadWarningSymbols()
-      setShowSymbolForm(false)
-      setEditingSymbol(null)
-      showMessage("success", editingSymbol ? "경고 표지가 수정되었습니다." : "경고 표지가 추가되었습니다.")
     } catch (error) {
-      console.error("Error saving symbol:", error)
-      showMessage("error", "경고 표지 저장 중 오류가 발생했습니다.")
+      console.error("Failed to save warning symbol:", error)
+      alert("저장 중 오류가 발생했습니다.")
     }
   }
 
@@ -400,7 +381,7 @@ export default function AdminDashboard() {
       category: equipment.category || "respiratory",
       imageUrl: equipment.imageUrl || "",
     })
-    setShowEquipmentForm(true)
+    setIsEquipmentDialogOpen(true)
   }
 
   const handleAddEquipment = () => {
@@ -412,49 +393,30 @@ export default function AdminDashboard() {
       category: "respiratory",
       imageUrl: "",
     })
-    setShowEquipmentForm(true)
+    setIsEquipmentDialogOpen(true)
   }
 
   const handleSaveEquipment = async () => {
+    if (!editingEquipment) return
+
     try {
-      if (!equipmentFormData.name.trim()) {
-        showMessage("error", "보호 장구 이름을 입력해주세요.")
-        return
-      }
+      const response = await fetch(`/api/protective-equipment/${editingEquipment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingEquipment),
+      })
 
-      const submitData = {
-        id: equipmentFormData.id || `equipment_${Date.now()}`,
-        name: equipmentFormData.name,
-        description: equipmentFormData.description,
-        imageUrl: equipmentFormData.imageUrl || "/placeholder.svg",
-        category: equipmentFormData.category,
-        isActive: true,
-      }
-
-      let response
-      if (editingEquipment) {
-        response = await fetch(`/api/protective-equipment/${editingEquipment.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
+      if (response.ok) {
+        await loadProtectiveEquipment()
+        setEditingEquipment(null)
+        setIsEquipmentDialogOpen(false)
       } else {
-        response = await fetch("/api/protective-equipment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
+        const error = await response.json()
+        alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
       }
-
-      if (!response.ok) throw new Error("저장 실패")
-
-      await loadProtectiveEquipment()
-      setShowEquipmentForm(false)
-      setEditingEquipment(null)
-      showMessage("success", editingEquipment ? "보호 장구가 수정되었습니다." : "보호 장구가 추가되었습니다.")
     } catch (error) {
-      console.error("Error saving equipment:", error)
-      showMessage("error", "보호 장구 저장 중 오류가 발생했습니다.")
+      console.error("Failed to save equipment:", error)
+      alert("저장 중 오류가 발생했습니다.")
     }
   }
 
@@ -756,8 +718,26 @@ export default function AdminDashboard() {
                       key={symbol.id}
                       className="border rounded-lg p-4 text-center hover:shadow-md transition-shadow group relative"
                     >
-                      <div className="w-16 h-16 mx-auto mb-2 bg-amber-50 border-2 border-amber-400 rounded-lg flex items-center justify-center">
-                        {WARNING_SYMBOL_ICONS[symbol.id] || <AlertTriangle className="w-8 h-8 text-amber-600" />}
+                      <div className="w-16 h-16 mx-auto mb-2 bg-amber-50 border-2 border-amber-400 rounded-lg flex items-center justify-center overflow-hidden">
+                        {symbol.imageUrl || symbol.image_url ? (
+                          <img
+                            src={`${symbol.imageUrl || symbol.image_url}?t=${Date.now()}`}
+                            alt={symbol.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none"
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = "flex"
+                            }}
+                          />
+                        ) : null}
+                        {/* 기본 아이콘 (이미지 없거나 로드 실패 시) */}
+                        <span
+                          style={{ display: symbol.imageUrl || symbol.image_url ? "none" : "flex" }}
+                          className="items-center justify-center"
+                        >
+                          {WARNING_SYMBOL_ICONS[symbol.id] || <AlertTriangle className="w-8 h-8 text-amber-600" />}
+                        </span>
                       </div>
                       <h4 className="font-medium">{symbol.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">{symbol.description}</p>
@@ -802,8 +782,26 @@ export default function AdminDashboard() {
                       key={equipment.id}
                       className="border rounded-lg p-4 text-center hover:shadow-md transition-shadow group relative"
                     >
-                      <div className="w-16 h-16 mx-auto mb-2 bg-blue-50 border border-blue-300 rounded-full flex items-center justify-center">
-                        {PROTECTIVE_EQUIPMENT_ICONS[equipment.id] || <Shield className="w-8 h-8 text-blue-600" />}
+                      <div className="w-16 h-16 mx-auto mb-2 bg-blue-50 border-2 border-blue-400 rounded-lg flex items-center justify-center overflow-hidden">
+                        {equipment.imageUrl || equipment.image_url ? (
+                          <img
+                            src={`${equipment.imageUrl || equipment.image_url}?t=${Date.now()}`}
+                            alt={equipment.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none"
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = "flex"
+                            }}
+                          />
+                        ) : null}
+                        {/* 기본 아이콘 (이미지 없거나 로드 실패 시) */}
+                        <span
+                          style={{ display: equipment.imageUrl || equipment.image_url ? "none" : "flex" }}
+                          className="items-center justify-center"
+                        >
+                          {PROTECTIVE_EQUIPMENT_ICONS[equipment.id] || <Shield className="w-8 h-8 text-blue-600" />}
+                        </span>
                       </div>
                       <h4 className="font-medium">{equipment.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">{equipment.description}</p>
@@ -844,7 +842,7 @@ export default function AdminDashboard() {
       <QRPrintModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} msdsItem={selectedQRItem} />
 
       {/* Symbol Form Dialog */}
-      <Dialog open={showSymbolForm} onOpenChange={setShowSymbolForm}>
+      <Dialog open={isSymbolDialogOpen} onOpenChange={setIsSymbolDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingSymbol ? "경고 표지 수정" : "새 경고 표지 추가"}</DialogTitle>
@@ -901,7 +899,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveSymbol}>저장</Button>
-              <Button variant="outline" onClick={() => setShowSymbolForm(false)}>
+              <Button variant="outline" onClick={() => setIsSymbolDialogOpen(false)}>
                 취소
               </Button>
             </div>
@@ -910,7 +908,7 @@ export default function AdminDashboard() {
       </Dialog>
 
       {/* Equipment Form Dialog */}
-      <Dialog open={showEquipmentForm} onOpenChange={setShowEquipmentForm}>
+      <Dialog open={isEquipmentDialogOpen} onOpenChange={setIsEquipmentDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingEquipment ? "보호 장구 수정" : "새 보호 장구 추가"}</DialogTitle>
@@ -970,7 +968,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveEquipment}>저장</Button>
-              <Button variant="outline" onClick={() => setShowEquipmentForm(false)}>
+              <Button variant="outline" onClick={() => setIsEquipmentDialogOpen(false)}>
                 취소
               </Button>
             </div>

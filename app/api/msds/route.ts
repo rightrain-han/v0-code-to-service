@@ -59,6 +59,16 @@ export async function GET() {
       return NextResponse.json({ items: SAMPLE_DATA })
     }
 
+    console.log(
+      "[v0] First item raw data:",
+      JSON.stringify({
+        id: msdsItems[0].id,
+        name: msdsItems[0].name,
+        msds_warning_symbols: msdsItems[0].msds_warning_symbols,
+        msds_protective_equipment: msdsItems[0].msds_protective_equipment,
+      }),
+    )
+
     const [warningSymbolsResponse, protectiveEquipmentResponse, locationOptionsResponse] = await Promise.all([
       supabase.from("warning_symbols").select("*"),
       supabase.from("protective_equipment").select("*"),
@@ -67,6 +77,12 @@ export async function GET() {
 
     const warningSymbols = warningSymbolsResponse.data || []
     const protectiveEquipment = protectiveEquipmentResponse.data || []
+
+    console.log(
+      "[v0] warning_symbols from DB:",
+      JSON.stringify(warningSymbols.map((s) => ({ id: s.id, name: s.name }))),
+    )
+
     const locationMap: Record<string, string> = {}
     ;(locationOptionsResponse.data || []).forEach((opt: { value: string; label: string }) => {
       locationMap[opt.value] = opt.label
@@ -79,6 +95,11 @@ export async function GET() {
       const protectiveEquipmentIds =
         item.msds_protective_equipment?.map((pe: { protective_equipment_id: string }) => pe.protective_equipment_id) ||
         []
+
+      if (item.id === 1) {
+        console.log("[v0] Item 1 warningSymbolIds:", warningSymbolIds)
+        console.log("[v0] Item 1 protectiveEquipmentIds:", protectiveEquipmentIds)
+      }
 
       const configItems = item.msds_config_items || []
 
