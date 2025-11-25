@@ -1,17 +1,29 @@
 -- 초기 데이터 삽입
 
--- 경고 표지 기본 데이터
+-- 경고 표지 기본 데이터 (GHS 기호 전체)
 INSERT INTO warning_symbols (id, name, description, image_url, category, is_active) VALUES
-  ('corrosive', '부식성', '피부나 눈에 심각한 화상을 일으킬 수 있음', '/images/symbols/corrosive.png', 'physical', true),
-  ('health_hazard', '건강 유해성', '호흡기, 생식기능 또는 기타 장기에 손상을 일으킬 수 있음', '/images/symbols/health_hazard.png', 'health', true),
-  ('toxic', '독성', '삼키거나 흡입하면 생명에 위험할 수 있음', '/images/symbols/toxic.png', 'health', true),
-  ('environmental', '환경 유해성', '수생생물에 유독하며 장기적 영향을 일으킬 수 있음', '/images/symbols/environmental.png', 'environmental', true),
+  ('explosive', '폭발성', '폭발하거나 대량 폭발할 수 있음', '/images/symbols/explosive.png', 'physical', true),
   ('flammable', '인화성', '쉽게 불이 붙을 수 있음', '/images/symbols/flammable.png', 'physical', true),
-  ('oxidizing', '산화성', '화재를 일으키거나 강화시킬 수 있음', '/images/symbols/oxidizing.png', 'physical', true)
+  ('oxidizing', '산화성', '화재를 일으키거나 강화시킬 수 있음', '/images/symbols/oxidizing.png', 'physical', true),
+  ('compressed_gas', '고압가스', '가압된 가스를 담고 있으며, 가열하면 폭발할 수 있음', '/images/symbols/compressed_gas.png', 'physical', true),
+  ('corrosive', '부식성', '피부나 눈에 심각한 화상을 일으킬 수 있음', '/images/symbols/corrosive.png', 'physical', true),
+  ('toxic', '급성독성', '삼키거나 흡입하면 생명에 위험할 수 있음', '/images/symbols/toxic.png', 'health', true),
+  ('irritant', '자극성', '피부나 눈에 자극을 일으킬 수 있음', '/images/symbols/irritant.png', 'health', true),
+  ('health_hazard', '건강 유해성', '호흡기, 생식기능 또는 기타 장기에 손상을 일으킬 수 있음', '/images/symbols/health_hazard.png', 'health', true),
+  ('environmental', '환경 유해성', '수생생물에 유독하며 장기적 영향을 일으킬 수 있음', '/images/symbols/environmental.png', 'environmental', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 보호 장구 기본 데이터
+-- 보호 장구 기본 데이터 (보호장구 전체)
 INSERT INTO protective_equipment (id, name, description, image_url, category, is_active) VALUES
+  ('safety_glasses', '보안경', '눈 보호를 위해 착용', '/images/protective/safety_glasses.png', 'eye', true),
+  ('face_shield', '안면보호구', '안면 보호를 위해 착용', '/images/protective/face_shield.png', 'eye', true),
+  ('gas_mask', '방독마스크', '유해 가스 차단을 위해 착용', '/images/protective/gas_mask.png', 'respiratory', true),
+  ('dust_mask', '방진마스크', '분진 차단을 위해 착용', '/images/protective/dust_mask.png', 'respiratory', true),
+  ('chemical_gloves', '내화학장갑', '화학물질로부터 손 보호를 위해 착용', '/images/protective/chemical_gloves.png', 'hand', true),
+  ('heat_gloves', '내열장갑', '고온으로부터 손 보호를 위해 착용', '/images/protective/heat_gloves.png', 'hand', true),
+  ('protective_suit', '보호복', '전신 보호를 위해 착용', '/images/protective/protective_suit.png', 'body', true),
+  ('safety_shoes', '안전화', '발 보호를 위해 착용', '/images/protective/safety_shoes.png', 'foot', true),
+  -- 레거시 ID 유지 (기존 데이터 호환성)
   ('flammable', '인화성 보호구', '인화성 물질 취급 시 착용', '/images/protective/flammable.png', 'body', true),
   ('toxic', '독성 보호구', '독성 물질 취급 시 착용', '/images/protective/toxic.png', 'respiratory', true),
   ('corrosive', '부식성 보호구', '부식성 물질 취급 시 착용', '/images/protective/corrosive.png', 'eye', true),
