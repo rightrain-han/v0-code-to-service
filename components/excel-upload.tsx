@@ -19,10 +19,10 @@ interface ExcelRow {
   msdsno?: string // E: MSDS 번호
   name?: string // F: 물질명
   desc?: string // G: 설명(영문명)
-  ghs_sign?: string // H: GHS 경고표지 (쉼표 구분된 숫자)
-  prope?: string // I: 보호장구
+  ghssign?: string // H: GHS 경고표지 (쉼표 구분된 숫자)
+  prgear?: string // I: 보호장구
   ishl?: string // J: 산업안전보건법
-  cmul?: string // K: 화학물질관리법
+  cmml?: string // K: 화학물질관리법
   file?: string // L: PDF 파일명
 }
 
@@ -131,14 +131,13 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
         pdfFileName: row.file || "",
         usage: row.purpose || "",
         reception: parseArea(row.area),
-        laws: parseLaws(row.ishl, row.cmul),
-        warningSymbols: parseGhsSigns(row.ghs_sign),
-        hazards: parsePrope(row.prope),
+        laws: parseLaws(row.ishl, row.cmml),
+        warningSymbols: parseGhsSigns(row.ghssign),
+        hazards: parsePrope(row.prgear),
         description: row.desc || "",
         msdsNo: row.msdsno || "",
       }))
 
-      // Filter out rows without a name
       const validData = parsed.filter((item) => item.name.trim() !== "")
 
       if (validData.length === 0) {
@@ -215,10 +214,10 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
         msdsno: "M0001",
         name: "염산 35%",
         desc: "HYDROCHLORIC ACID 35%",
-        ghs_sign: "4,5,6,7",
-        prope: "3",
+        ghssign: "4,5,6,7",
+        prgear: "3",
         ishl: "ㅇ",
-        cmul: "",
+        cmml: "",
         file: "msds/염산35_HYDROCHLORIC_ACID.pdf",
       },
     ]
@@ -227,7 +226,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "MSDS 데이터")
 
-    // Set column widths
     worksheet["!cols"] = [
       { wch: 15 }, // purpose
       { wch: 12 }, // area
@@ -236,10 +234,10 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
       { wch: 10 }, // msdsno
       { wch: 30 }, // name
       { wch: 40 }, // desc
-      { wch: 15 }, // ghs_sign
-      { wch: 10 }, // prope
+      { wch: 15 }, // ghssign
+      { wch: 10 }, // prgear
       { wch: 8 }, // ishl
-      { wch: 8 }, // cmul
+      { wch: 8 }, // cmml
       { wch: 50 }, // file
     ]
 
@@ -259,7 +257,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
         <CardDescription>엑셀 파일을 업로드하여 여러 MSDS 데이터를 한 번에 등록할 수 있습니다.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Template Download */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
             <p className="font-medium">템플릿 다운로드</p>
@@ -271,7 +268,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           </Button>
         </div>
 
-        {/* File Upload */}
         <div className="border-2 border-dashed rounded-lg p-8 text-center">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls" className="hidden" />
           <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
@@ -292,7 +288,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           </Button>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
@@ -300,7 +295,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           </Alert>
         )}
 
-        {/* Parsed Data Preview */}
         {parsedData.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -368,7 +362,6 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           </div>
         )}
 
-        {/* Upload Results */}
         {uploadResults.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -413,6 +406,12 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
               <strong>area</strong>: 구역/수령장소 (쉼표 구분)
             </div>
             <div>
+              <strong>created</strong>: 생성일
+            </div>
+            <div>
+              <strong>updated</strong>: 수정일
+            </div>
+            <div>
               <strong>msdsno</strong>: MSDS 번호 (M0001)
             </div>
             <div>
@@ -422,16 +421,16 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
               <strong>desc</strong>: 설명/영문명
             </div>
             <div>
-              <strong>ghs_sign</strong>: GHS 경고표지 번호 (쉼표 구분)
+              <strong>ghssign</strong>: GHS 경고표지 번호 (쉼표 구분)
             </div>
             <div>
-              <strong>prope</strong>: 보호장구 번호
+              <strong>prgear</strong>: 보호장구 번호
             </div>
             <div>
               <strong>ishl</strong>: 산업안전보건법 (ㅇ 표시)
             </div>
             <div>
-              <strong>cmul</strong>: 화학물질관리법 (ㅇ 표시)
+              <strong>cmml</strong>: 화학물질관리법 (ㅇ 표시)
             </div>
             <div>
               <strong>file</strong>: PDF 파일명
