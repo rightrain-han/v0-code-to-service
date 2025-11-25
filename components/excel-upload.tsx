@@ -12,29 +12,58 @@ import { Upload, FileSpreadsheet, CheckCircle, XCircle, Download, Loader2 } from
 import * as XLSX from "xlsx"
 
 interface ExcelRow {
-  물질명: string
-  PDF파일명?: string
-  유해성?: string
-  용도?: string
-  수령장소?: string
-  법규?: string
-  경고표지?: string
+  purpose?: string // A: 용도
+  area?: string // B: 구역 (수령장소)
+  created?: string // C: 생성일
+  updated?: string // D: 수정일
+  msdsno?: string // E: MSDS 번호
+  name?: string // F: 물질명
+  desc?: string // G: 설명(영문명)
+  ghs_sign?: string // H: GHS 경고표지 (쉼표 구분된 숫자)
+  prope?: string // I: 보호장구
+  ishl?: string // J: 산업안전보건법
+  cmul?: string // K: 화학물질관리법
+  file?: string // L: PDF 파일명
 }
 
 interface ParsedMsdsData {
   name: string
   pdfFileName: string
-  hazards: string[]
   usage: string
   reception: string[]
   laws: string[]
   warningSymbols: string[]
+  hazards: string[]
+  description: string
+  msdsNo: string
 }
 
 interface UploadResult {
   success: boolean
   name: string
   error?: string
+}
+
+const GHS_SIGN_MAP: Record<string, string> = {
+  "1": "explosive",
+  "2": "flammable",
+  "3": "oxidizing",
+  "4": "gas_pressure",
+  "5": "corrosive",
+  "6": "toxic",
+  "7": "irritant",
+  "8": "health_hazard",
+  "9": "environmental",
+}
+
+const PROPE_MAP: Record<string, string> = {
+  "1": "respiratory",
+  "2": "eye",
+  "3": "hand",
+  "4": "body",
+  "5": "foot",
+  "6": "face_shield",
+  "7": "apron",
 }
 
 export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
@@ -44,6 +73,39 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
   const [isParsing, setIsParsing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const parseGhsSigns = (ghsSign: string | undefined): string[] => {
+    if (!ghsSign) return []
+    return ghsSign
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s)
+      .map((num) => GHS_SIGN_MAP[num] || `ghs_${num}`)
+  }
+
+  const parsePrope = (prope: string | undefined): string[] => {
+    if (!prope) return []
+    return prope
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s)
+      .map((num) => PROPE_MAP[num] || `prope_${num}`)
+  }
+
+  const parseArea = (area: string | undefined): string[] => {
+    if (!area) return []
+    return area
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s)
+  }
+
+  const parseLaws = (ishl: string | undefined, cmul: string | undefined): string[] => {
+    const laws: string[] = []
+    if (ishl && ishl.trim()) laws.push("산업안전보건법")
+    if (cmul && cmul.trim()) laws.push("화학물질관리법")
+    return laws
+  }
 
   const parseExcelFile = async (file: File) => {
     setIsParsing(true)
@@ -65,20 +127,22 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
       }
 
       const parsed: ParsedMsdsData[] = jsonData.map((row) => ({
-        name: row.물질명 || "",
-        pdfFileName: row.PDF파일명 || "",
-        hazards: row.유해성 ? row.유해성.split(",").map((s) => s.trim()) : [],
-        usage: row.용도 || "",
-        reception: row.수령장소 ? row.수령장소.split(",").map((s) => s.trim()) : [],
-        laws: row.법규 ? row.법규.split(",").map((s) => s.trim()) : [],
-        warningSymbols: row.경고표지 ? row.경고표지.split(",").map((s) => s.trim()) : [],
+        name: row.name || "",
+        pdfFileName: row.file || "",
+        usage: row.purpose || "",
+        reception: parseArea(row.area),
+        laws: parseLaws(row.ishl, row.cmul),
+        warningSymbols: parseGhsSigns(row.ghs_sign),
+        hazards: parsePrope(row.prope),
+        description: row.desc || "",
+        msdsNo: row.msdsno || "",
       }))
 
       // Filter out rows without a name
       const validData = parsed.filter((item) => item.name.trim() !== "")
 
       if (validData.length === 0) {
-        setError("유효한 데이터가 없습니다. '물질명' 컬럼을 확인해주세요.")
+        setError("유효한 데이터가 없습니다. 'name' 컬럼을 확인해주세요.")
         setIsParsing(false)
         return
       }
@@ -110,7 +174,15 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
         const response = await fetch("/api/msds", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item),
+          body: JSON.stringify({
+            name: item.name,
+            pdfFileName: item.pdfFileName,
+            usage: item.usage,
+            reception: item.reception,
+            laws: item.laws,
+            warningSymbols: item.warningSymbols,
+            hazards: item.hazards,
+          }),
         })
 
         if (response.ok) {
@@ -136,13 +208,18 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
   const downloadTemplate = () => {
     const templateData = [
       {
-        물질명: "예시 화학물질",
-        PDF파일명: "example.pdf",
-        유해성: "인화성,독성",
-        용도: "순수시약",
-        수령장소: "LNG 3호기 CPP,수처리동",
-        법규: "화학물질안전법,산업안전보건법",
-        경고표지: "flammable,toxic",
+        purpose: "순수처리",
+        area: "19,20,17",
+        created: "2021-02-17",
+        updated: "2021-04-13",
+        msdsno: "M0001",
+        name: "염산 35%",
+        desc: "HYDROCHLORIC ACID 35%",
+        ghs_sign: "4,5,6,7",
+        prope: "3",
+        ishl: "ㅇ",
+        cmul: "",
+        file: "msds/염산35_HYDROCHLORIC_ACID.pdf",
       },
     ]
 
@@ -152,13 +229,18 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
 
     // Set column widths
     worksheet["!cols"] = [
-      { wch: 20 }, // 물질명
-      { wch: 15 }, // PDF파일명
-      { wch: 15 }, // 유해성
-      { wch: 15 }, // 용도
-      { wch: 25 }, // 수령장소
-      { wch: 25 }, // 법규
-      { wch: 20 }, // 경고표지
+      { wch: 15 }, // purpose
+      { wch: 12 }, // area
+      { wch: 12 }, // created
+      { wch: 12 }, // updated
+      { wch: 10 }, // msdsno
+      { wch: 30 }, // name
+      { wch: 40 }, // desc
+      { wch: 15 }, // ghs_sign
+      { wch: 10 }, // prope
+      { wch: 8 }, // ishl
+      { wch: 8 }, // cmul
+      { wch: 50 }, // file
     ]
 
     XLSX.writeFile(workbook, "msds_template.xlsx")
@@ -243,26 +325,16 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                 <TableHeader>
                   <TableRow>
                     <TableHead className="sticky top-0 bg-background">물질명</TableHead>
-                    <TableHead className="sticky top-0 bg-background">PDF파일명</TableHead>
-                    <TableHead className="sticky top-0 bg-background">유해성</TableHead>
                     <TableHead className="sticky top-0 bg-background">용도</TableHead>
-                    <TableHead className="sticky top-0 bg-background">수령장소</TableHead>
+                    <TableHead className="sticky top-0 bg-background">구역</TableHead>
+                    <TableHead className="sticky top-0 bg-background">경고표지</TableHead>
+                    <TableHead className="sticky top-0 bg-background">PDF파일</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedData.map((item, index) => (
+                  {parsedData.slice(0, 50).map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.pdfFileName || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {item.hazards.map((h, i) => (
-                            <Badge key={i} variant="secondary" className="text-xs">
-                              {h}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
                       <TableCell>{item.usage || "-"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -273,11 +345,26 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
                           ))}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {item.warningSymbols.map((s, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs max-w-40 truncate">{item.pdfFileName || "-"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
+            {parsedData.length > 50 && (
+              <p className="text-sm text-muted-foreground text-center">
+                ... 외 {parsedData.length - 50}개 항목 (미리보기는 50개까지만 표시)
+              </p>
+            )}
           </div>
         )}
 
@@ -301,9 +388,10 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
             {failCount > 0 && (
               <div className="border rounded-lg p-4 bg-destructive/10">
                 <p className="font-medium text-destructive mb-2">실패한 항목:</p>
-                <ul className="text-sm space-y-1">
+                <ul className="text-sm space-y-1 max-h-40 overflow-auto">
                   {uploadResults
                     .filter((r) => !r.success)
+                    .slice(0, 20)
                     .map((r, i) => (
                       <li key={i}>
                         <span className="font-medium">{r.name}</span>: {r.error}
@@ -315,32 +403,46 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           </div>
         )}
 
-        {/* Column Guide */}
         <div className="p-4 bg-muted rounded-lg">
           <p className="font-medium mb-2">엑셀 컬럼 가이드</p>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>
-              <strong>물질명</strong> (필수): MSDS 물질 이름
-            </li>
-            <li>
-              <strong>PDF파일명</strong>: PDF 파일 이름
-            </li>
-            <li>
-              <strong>유해성</strong>: 쉼표로 구분 (예: 인화성,독성)
-            </li>
-            <li>
-              <strong>용도</strong>: 사용 용도
-            </li>
-            <li>
-              <strong>수령장소</strong>: 쉼표로 구분 (예: LNG 3호기 CPP,수처리동)
-            </li>
-            <li>
-              <strong>법규</strong>: 쉼표로 구분 (예: 화학물질안전법,산업안전보건법)
-            </li>
-            <li>
-              <strong>경고표지</strong>: 쉼표로 구분된 ID (예: flammable,toxic,corrosive)
-            </li>
-          </ul>
+          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+            <div>
+              <strong>purpose</strong>: 용도 (순수처리, 폐수처리 등)
+            </div>
+            <div>
+              <strong>area</strong>: 구역/수령장소 (쉼표 구분)
+            </div>
+            <div>
+              <strong>msdsno</strong>: MSDS 번호 (M0001)
+            </div>
+            <div>
+              <strong>name</strong>: 물질명 (필수)
+            </div>
+            <div>
+              <strong>desc</strong>: 설명/영문명
+            </div>
+            <div>
+              <strong>ghs_sign</strong>: GHS 경고표지 번호 (쉼표 구분)
+            </div>
+            <div>
+              <strong>prope</strong>: 보호장구 번호
+            </div>
+            <div>
+              <strong>ishl</strong>: 산업안전보건법 (ㅇ 표시)
+            </div>
+            <div>
+              <strong>cmul</strong>: 화학물질관리법 (ㅇ 표시)
+            </div>
+            <div>
+              <strong>file</strong>: PDF 파일명
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t">
+            <p className="font-medium mb-1">GHS 경고표지 번호:</p>
+            <p className="text-xs">
+              1=폭발성, 2=인화성, 3=산화성, 4=가스압력, 5=부식성, 6=독성, 7=자극성, 8=건강유해성, 9=환경유해성
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
