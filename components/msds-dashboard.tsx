@@ -332,18 +332,18 @@ function MsdsDashboard() {
                       <AlertTriangle className="w-3 h-3 text-orange-500" />
                       경고 표지
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
                         item.warningSymbolsData.map((symbol) => (
                           <div key={symbol.id} className="relative group/symbol" title={symbol.name}>
-                            <div className="w-10 h-10 rotate-45 border-2 border-orange-400 bg-white flex items-center justify-center overflow-hidden">
+                            <div className="w-10 h-10 rotate-45 flex items-center justify-center">
                               <div className="-rotate-45">
                                 {symbol.imageUrl || symbol.image_url ? (
                                   <Image
                                     src={symbol.imageUrl || symbol.image_url || ""}
                                     alt={symbol.name}
-                                    width={32}
-                                    height={32}
+                                    width={36}
+                                    height={36}
                                     className="object-contain"
                                   />
                                 ) : (
@@ -369,17 +369,17 @@ function MsdsDashboard() {
                       <Shield className="w-3 h-3 text-green-500" />
                       보호 장구
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
                         item.protectiveEquipmentData.map((equipment) => (
                           <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
-                            <div className="px-3 py-1.5 rounded-md border border-gray-300 bg-white flex items-center justify-center overflow-hidden">
+                            <div className="w-8 h-8 flex items-center justify-center">
                               {equipment.imageUrl || equipment.image_url ? (
                                 <Image
                                   src={equipment.imageUrl || equipment.image_url || ""}
                                   alt={equipment.name}
-                                  width={24}
-                                  height={24}
+                                  width={28}
+                                  height={28}
                                   className="object-contain"
                                 />
                               ) : (
