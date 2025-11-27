@@ -288,63 +288,74 @@ function MsdsDashboard() {
                 className="group cursor-pointer hover:shadow-lg transition-all duration-200 bg-white border border-gray-200 overflow-hidden relative"
                 onClick={(e) => handleCardClick(item, e)}
               >
-                <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${getStatusColor(item.usage)}`} />
+                <div
+                  className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
+                    item.pdfFileName ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                  title={item.pdfFileName ? "PDF 파일 있음" : "PDF 파일 없음"}
+                />
 
                 <CardContent className="p-4">
                   {/* 물질명 */}
                   <h3 className="font-bold text-gray-900 text-base mb-2 pr-6">{item.name}</h3>
 
-                  <Badge className={`mb-3 text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge className={`text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
 
-                  {item.pdfFileName && (
-                    <div className="flex gap-2 mb-3">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
-                        }}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                        onClick={(e) => handlePdfDownload(item, e)}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+                    {item.pdfFileName && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={(e) => handlePdfDownload(item, e)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
+                      <AlertTriangle className="w-3 h-3 text-orange-500" />
                       경고 표지
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
                         item.warningSymbolsData.map((symbol) => (
-                          <div
-                            key={symbol.id}
-                            className="w-8 h-8 rounded border border-gray-200 bg-white flex items-center justify-center overflow-hidden"
-                            title={symbol.name}
-                          >
-                            <Image
-                              src={symbol.imageUrl || `/warning-symbols/${symbol.id}.svg`}
-                              alt={symbol.name}
-                              width={28}
-                              height={28}
-                              className="object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                target.parentElement!.innerHTML = `<span class="text-xs font-bold text-red-600">${symbol.name?.substring(0, 1) || "!"}</span>`
-                              }}
-                            />
+                          <div key={symbol.id} className="relative group/symbol" title={symbol.name}>
+                            <div className="w-10 h-10 rotate-45 flex items-center justify-center">
+                              <div className="-rotate-45">
+                                {symbol.imageUrl || symbol.image_url ? (
+                                  <Image
+                                    src={symbol.imageUrl || symbol.image_url || ""}
+                                    alt={symbol.name}
+                                    width={36}
+                                    height={36}
+                                    className="object-contain"
+                                  />
+                                ) : (
+                                  <span className="text-xs font-bold text-orange-600">
+                                    {symbol.name?.substring(0, 2) || "!"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/symbol:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                              {symbol.name}
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -355,29 +366,31 @@ function MsdsDashboard() {
 
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
-                      <Shield className="w-3 h-3" />
+                      <Shield className="w-3 h-3 text-green-500" />
                       보호 장구
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
                         item.protectiveEquipmentData.map((equipment) => (
-                          <div
-                            key={equipment.id}
-                            className="w-8 h-8 rounded border border-gray-200 bg-white flex items-center justify-center overflow-hidden"
-                            title={equipment.name}
-                          >
-                            <Image
-                              src={equipment.imageUrl || `/protective-equipment/${equipment.id}.svg`}
-                              alt={equipment.name}
-                              width={28}
-                              height={28}
-                              className="object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                target.parentElement!.innerHTML = `<span class="text-xs font-bold text-blue-600">${equipment.name?.substring(0, 1) || "!"}</span>`
-                              }}
-                            />
+                          <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
+                            <div className="w-8 h-8 flex items-center justify-center">
+                              {equipment.imageUrl || equipment.image_url ? (
+                                <Image
+                                  src={equipment.imageUrl || equipment.image_url || ""}
+                                  alt={equipment.name}
+                                  width={28}
+                                  height={28}
+                                  className="object-contain"
+                                />
+                              ) : (
+                                <span className="text-xs font-medium text-gray-700">
+                                  {equipment.name?.substring(0, 2) || "!"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/equipment:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                              {equipment.name}
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -386,23 +399,15 @@ function MsdsDashboard() {
                     </div>
                   </div>
 
-                  {/* 사용 장소 */}
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5">사용 장소</p>
                     <div className="flex flex-wrap gap-1">
                       {item.reception && item.reception.length > 0 ? (
-                        <>
-                          {item.reception.slice(0, 2).map((rec, idx) => (
-                            <Badge key={idx} className="text-xs bg-emerald-500 text-white hover:bg-emerald-600">
-                              {rec}
-                            </Badge>
-                          ))}
-                          {item.reception.length > 2 && (
-                            <Badge className="text-xs bg-emerald-400 text-white">
-                              +{item.reception.length - 2}개 더
-                            </Badge>
-                          )}
-                        </>
+                        item.reception.map((rec, idx) => (
+                          <Badge key={idx} className="text-xs bg-emerald-500 text-white hover:bg-emerald-600">
+                            {rec}
+                          </Badge>
+                        ))
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
                       )}
@@ -419,7 +424,7 @@ function MsdsDashboard() {
                             key={idx}
                             className={`text-xs text-white ${
                               law.includes("화학물질")
-                                ? "bg-red-500 hover:bg-red-600"
+                                ? "bg-teal-500 hover:bg-teal-600"
                                 : "bg-orange-500 hover:bg-orange-600"
                             }`}
                           >
