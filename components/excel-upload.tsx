@@ -167,8 +167,33 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     setUploadResults([])
     const results: UploadResult[] = []
 
+    let existingItems: { name: string; id: number }[] = []
+    try {
+      const response = await fetch("/api/msds")
+      const data = await response.json()
+      existingItems = (data.items || []).map((item: { name: string; id: number }) => ({
+        name: item.name,
+        id: item.id,
+      }))
+    } catch (err) {
+      console.error("[v0] Failed to fetch existing MSDS:", err)
+    }
+
     for (const item of parsedData) {
       try {
+        const existingItem = existingItems.find((existing) => existing.name === item.name)
+
+        if (existingItem) {
+          // 이미 존재하는 항목 - 스킵
+          results.push({
+            success: false,
+            name: item.name,
+            error: "이미 등록된 항목입니다 (스킵됨)",
+          })
+          continue
+        }
+
+        // 새로운 항목 - 등록
         const response = await fetch("/api/msds", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -178,8 +203,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
             usage: item.usage,
             reception: item.reception,
             laws: item.laws,
-            warningSymbols: item.warningSymbols, // 숫자 ID 배열
-            hazards: item.hazards, // 숫자 ID 배열
+            warningSymbols: item.warningSymbols,
+            hazards: item.hazards,
           }),
         })
 
