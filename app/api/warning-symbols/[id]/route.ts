@@ -8,12 +8,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json()
 
     const supabase = createAdminClient()
+
+    let imageUrl = body.imageUrl
+    if (imageUrl && !imageUrl.includes("?")) {
+      imageUrl = `${imageUrl}?t=${Date.now()}`
+    }
+
     const { data, error } = await supabase
       .from("warning_symbols")
       .update({
         name: body.name,
         description: body.description,
-        image_url: body.imageUrl,
+        image_url: imageUrl,
         category: body.category,
         is_active: body.isActive ?? true,
       })

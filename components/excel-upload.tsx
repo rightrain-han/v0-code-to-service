@@ -44,27 +44,39 @@ interface UploadResult {
   error?: string
 }
 
+const GHS_ID_MAP: Record<string, string> = {
+  "1": "101", // 폭발성
+  "2": "105", // 인화성
+  "3": "109", // 산화성
+  "4": "108", // 고압가스
+  "5": "103", // 부식성
+  "6": "104", // 급성독성
+  "7": "102", // 경고
+  "8": "106", // 발암성/호흡기
+  "9": "107", // 수생환경유해성
+}
+
 const GHS_DISPLAY_MAP: Record<string, string> = {
-  "1": "폭발성",
-  "2": "인화성",
-  "3": "산화성",
-  "4": "고압가스",
-  "5": "부식성",
-  "6": "급성독성",
-  "7": "자극성",
-  "8": "건강유해",
-  "9": "환경유해",
+  "101": "폭발성",
+  "105": "인화성",
+  "109": "산화성",
+  "108": "고압가스",
+  "103": "부식성",
+  "104": "급성독성",
+  "102": "경고",
+  "106": "발암성/호흡기",
+  "107": "수생환경유해성",
 }
 
 const PRGEAR_DISPLAY_MAP: Record<string, string> = {
-  "1": "보안경",
-  "2": "안면보호구",
-  "3": "방독마스크",
-  "4": "방진마스크",
-  "5": "내화학장갑",
-  "6": "내열장갑",
-  "7": "보호복",
-  "8": "안전화",
+  "1": "방독마스크",
+  "2": "방음보호구",
+  "3": "방진마스크",
+  "4": "보안경",
+  "5": "보호복",
+  "6": "송기마스크",
+  "7": "안전장갑",
+  "8": "용접용보안면",
 }
 
 export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
@@ -81,6 +93,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s && !isNaN(Number(s)))
+      .map((s) => GHS_ID_MAP[s] || s) // 매핑 테이블 사용
+      .filter((s) => s) // 유효한 ID만 필터링
   }
 
   const parsePrope = (prope: string | undefined): string[] => {
@@ -167,33 +181,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     setUploadResults([])
     const results: UploadResult[] = []
 
-    let existingItems: { name: string; id: number }[] = []
-    try {
-      const response = await fetch("/api/msds")
-      const data = await response.json()
-      existingItems = (data.items || []).map((item: { name: string; id: number }) => ({
-        name: item.name,
-        id: item.id,
-      }))
-    } catch (err) {
-      console.error("[v0] Failed to fetch existing MSDS:", err)
-    }
-
     for (const item of parsedData) {
       try {
-        const existingItem = existingItems.find((existing) => existing.name === item.name)
-
-        if (existingItem) {
-          // 이미 존재하는 항목 - 스킵
-          results.push({
-            success: false,
-            name: item.name,
-            error: "이미 등록된 항목입니다 (스킵됨)",
-          })
-          continue
-        }
-
-        // 새로운 항목 - 등록
         const response = await fetch("/api/msds", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -238,8 +227,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
         msdsno: "M0001",
         name: "염산 35%",
         desc: "HYDROCHLORIC ACID 35%",
-        ghssign: "4,5,6,7",
-        prgear: "3",
+        ghssign: "1,2,3,4",
+        prgear: "1,2,3,4",
         ishl: "ㅇ",
         cmml: "",
         file: "msds/염산35_HYDROCHLORIC_ACID.pdf",
@@ -473,11 +462,11 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
           <div className="mt-3 pt-3 border-t">
             <p className="font-medium mb-1">GHS 경고표지 번호:</p>
             <p className="text-xs">
-              1=폭발성, 2=인화성, 3=산화성, 4=고압가스, 5=부식성, 6=급성독성, 7=자극성, 8=건강유해, 9=환경유해
+              1=폭발성, 2=인화성, 3=산화성, 4=고압가스, 5=부식성, 6=급성독성, 7=경고, 8=발암성/호흡기, 9=수생환경유해성
             </p>
             <p className="font-medium mb-1 mt-2">보호장구 번호:</p>
             <p className="text-xs">
-              1=보안경, 2=안면보호구, 3=방독마스크, 4=방진마스크, 5=내화학장갑, 6=내열장갑, 7=보호복, 8=안전화
+              1=방독마스크, 2=방음보호구, 3=방진마스크, 4=보안경, 5=보호복, 6=송기마스크, 7=안전장갑, 8=용접용보안면
             </p>
           </div>
         </div>

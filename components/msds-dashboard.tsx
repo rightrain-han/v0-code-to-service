@@ -290,9 +290,9 @@ function MsdsDashboard() {
               >
                 <div
                   className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
-                    item.pdfFileName ? "bg-green-500" : "bg-gray-300"
+                    item.pdfUrl ? "bg-green-500" : "bg-gray-300"
                   }`}
-                  title={item.pdfFileName ? "PDF 파일 있음" : "PDF 파일 없음"}
+                  title={item.pdfUrl ? "PDF 파일 있음" : "PDF 파일 없음"}
                 />
 
                 <CardContent className="p-4">
@@ -302,7 +302,7 @@ function MsdsDashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <Badge className={`text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
 
-                    {item.pdfFileName && (
+                    {item.pdfUrl && (
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
@@ -336,15 +336,16 @@ function MsdsDashboard() {
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
                         item.warningSymbolsData.map((symbol) => (
                           <div key={symbol.id} className="relative group/symbol" title={symbol.name}>
-                            <div className="w-10 h-10 rotate-45 flex items-center justify-center">
-                              <div className="-rotate-45">
+                            <div className="w-10 h-10 rotate-45 overflow-hidden bg-white border border-gray-200">
+                              <div className="-rotate-45 w-full h-full flex items-center justify-center">
                                 {symbol.imageUrl || symbol.image_url ? (
                                   <Image
-                                    src={symbol.imageUrl || symbol.image_url || ""}
+                                    src={symbol.imageUrl || symbol.image_url}
                                     alt={symbol.name}
-                                    width={36}
-                                    height={36}
+                                    width={40}
+                                    height={40}
                                     className="object-contain"
+                                    unoptimized
                                   />
                                 ) : (
                                   <span className="text-xs font-bold text-orange-600">
@@ -373,21 +374,22 @@ function MsdsDashboard() {
                       {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
                         item.protectiveEquipmentData.map((equipment) => (
                           <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
-                            <div className="w-8 h-8 flex items-center justify-center">
-                              {equipment.imageUrl || equipment.image_url ? (
-                                <Image
-                                  src={equipment.imageUrl || equipment.image_url || ""}
-                                  alt={equipment.name}
-                                  width={28}
-                                  height={28}
-                                  className="object-contain"
-                                />
-                              ) : (
-                                <span className="text-xs font-medium text-gray-700">
-                                  {equipment.name?.substring(0, 2) || "!"}
+                            {equipment.imageUrl || equipment.image_url ? (
+                              <Image
+                                src={equipment.imageUrl || equipment.image_url}
+                                alt={equipment.name}
+                                width={36}
+                                height={36}
+                                className="object-contain"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-9 h-9 flex items-center justify-center bg-gray-100 rounded">
+                                <span className="text-xs font-bold text-green-600">
+                                  {equipment.name?.substring(0, 2) || "?"}
                                 </span>
-                              )}
-                            </div>
+                              </div>
+                            )}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/equipment:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                               {equipment.name}
                             </div>

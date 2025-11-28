@@ -51,12 +51,13 @@ export async function GET() {
 
     if (msdsError) {
       console.error("[v0] MSDS query error:", msdsError)
-      return NextResponse.json({ items: SAMPLE_DATA })
+      // Rate limit이나 다른 Supabase 에러 발생 시 샘플 데이터 대신 빈 배열 반환
+      return NextResponse.json({ items: [], error: msdsError.message }, { status: 500 })
     }
 
     if (!msdsItems || msdsItems.length === 0) {
-      console.log("[v0] No MSDS items found, returning sample data")
-      return NextResponse.json({ items: SAMPLE_DATA })
+      console.log("[v0] No MSDS items found")
+      return NextResponse.json({ items: [] })
     }
 
     console.log(
@@ -168,9 +169,15 @@ export async function GET() {
 
     console.log("[v0] Returning", enrichedItems.length, "MSDS items from DB")
     return NextResponse.json({ items: enrichedItems })
-  } catch (err) {
+  } catch (err: any) {
     console.error("[v0] MSDS API error:", err)
-    return NextResponse.json({ items: SAMPLE_DATA })
+    return NextResponse.json(
+      {
+        items: [],
+        error: err?.message || "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
 

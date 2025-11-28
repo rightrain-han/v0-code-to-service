@@ -2,18 +2,24 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase-admin"
 
 // PUT - 보호 장구 수정
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
 
     const supabase = createAdminClient()
+
+    let imageUrl = body.imageUrl
+    if (imageUrl && !imageUrl.includes("?")) {
+      imageUrl = `${imageUrl}?t=${Date.now()}`
+    }
+
     const { data, error } = await supabase
       .from("protective_equipment")
       .update({
         name: body.name,
         description: body.description,
-        image_url: body.imageUrl,
+        image_url: imageUrl,
         category: body.category,
         is_active: body.isActive ?? true,
       })
@@ -34,9 +40,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // DELETE - 보호 장구 삭제
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
 
     const supabase = createAdminClient()
 
