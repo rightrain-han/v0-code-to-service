@@ -336,19 +336,20 @@ export default function AdminDashboard() {
   }
 
   const handleSaveSymbol = async () => {
-    if (!editingSymbol) return
+    if (!symbolFormData.id) return
 
     try {
-      const response = await fetch(`/api/warning-symbols/${editingSymbol.id}`, {
+      const response = await fetch(`/api/warning-symbols/${symbolFormData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingSymbol),
+        body: JSON.stringify(symbolFormData),
       })
 
       if (response.ok) {
         await loadWarningSymbols()
         setEditingSymbol(null)
         setIsSymbolDialogOpen(false)
+        showMessage("success", "경고 표지가 저장되었습니다.")
       } else {
         const error = await response.json()
         alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
@@ -397,19 +398,20 @@ export default function AdminDashboard() {
   }
 
   const handleSaveEquipment = async () => {
-    if (!editingEquipment) return
+    if (!equipmentFormData.id) return
 
     try {
-      const response = await fetch(`/api/protective-equipment/${editingEquipment.id}`, {
+      const response = await fetch(`/api/protective-equipment/${equipmentFormData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingEquipment),
+        body: JSON.stringify(equipmentFormData),
       })
 
       if (response.ok) {
         await loadProtectiveEquipment()
         setEditingEquipment(null)
         setIsEquipmentDialogOpen(false)
+        showMessage("success", "보호 장구가 저장되었습니다.")
       } else {
         const error = await response.json()
         alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
