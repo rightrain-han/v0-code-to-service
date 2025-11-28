@@ -336,15 +336,16 @@ function MsdsDashboard() {
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
                         item.warningSymbolsData.map((symbol) => (
                           <div key={symbol.id} className="relative group/symbol" title={symbol.name}>
-                            <div className="w-10 h-10 rotate-45 flex items-center justify-center">
-                              <div className="-rotate-45">
+                            <div className="w-10 h-10 rotate-45 overflow-hidden bg-white border border-gray-200">
+                              <div className="-rotate-45 w-full h-full flex items-center justify-center">
                                 {symbol.imageUrl || symbol.image_url ? (
                                   <Image
-                                    src={symbol.imageUrl || symbol.image_url || ""}
+                                    src={symbol.imageUrl || symbol.image_url}
                                     alt={symbol.name}
-                                    width={36}
-                                    height={36}
+                                    width={40}
+                                    height={40}
                                     className="object-contain"
+                                    unoptimized
                                   />
                                 ) : (
                                   <span className="text-xs font-bold text-orange-600">
@@ -375,14 +376,15 @@ function MsdsDashboard() {
                           <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
                             {equipment.imageUrl || equipment.image_url ? (
                               <Image
-                                src={equipment.imageUrl || equipment.image_url || ""}
+                                src={equipment.imageUrl || equipment.image_url}
                                 alt={equipment.name}
-                                width={32}
-                                height={32}
+                                width={36}
+                                height={36}
                                 className="object-contain"
+                                unoptimized
                               />
                             ) : (
-                              <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded">
+                              <div className="w-9 h-9 flex items-center justify-center bg-gray-100 rounded">
                                 <span className="text-xs font-bold text-green-600">
                                   {equipment.name?.substring(0, 2) || "?"}
                                 </span>

@@ -44,6 +44,18 @@ interface UploadResult {
   error?: string
 }
 
+const GHS_ID_MAP: Record<string, string> = {
+  "1": "101", // 폭발성
+  "2": "105", // 인화성
+  "3": "109", // 산화성
+  "4": "108", // 고압가스
+  "5": "103", // 부식성
+  "6": "104", // 급성독성
+  "7": "102", // 경고
+  "8": "106", // 발암성/호흡기
+  "9": "107", // 수생환경유해성
+}
+
 const GHS_DISPLAY_MAP: Record<string, string> = {
   "101": "폭발성",
   "105": "인화성",
@@ -81,7 +93,8 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s && !isNaN(Number(s)))
-      .map((s) => `10${s}`) // 단순히 앞에 "10"을 붙임
+      .map((s) => GHS_ID_MAP[s] || s) // 매핑 테이블 사용
+      .filter((s) => s) // 유효한 ID만 필터링
   }
 
   const parsePrope = (prope: string | undefined): string[] => {
