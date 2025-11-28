@@ -77,22 +77,11 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
 
   const parseGhsSigns = (ghsSign: string | undefined): string[] => {
     if (!ghsSign) return []
-    const ghsMap: Record<string, string> = {
-      "1": "101", // 폭발성
-      "2": "105", // 인화성
-      "3": "109", // 산화성
-      "4": "108", // 고압가스
-      "5": "103", // 부식성
-      "6": "104", // 급성독성
-      "7": "102", // 경고
-      "8": "106", // 발암성/호흡기
-      "9": "107", // 수생환경유해성
-    }
     return ghsSign
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s && !isNaN(Number(s)))
-      .map((s) => ghsMap[s] || s)
+      .map((s) => `10${s}`) // 단순히 앞에 "10"을 붙임
   }
 
   const parsePrope = (prope: string | undefined): string[] => {
