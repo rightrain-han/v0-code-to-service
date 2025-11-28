@@ -43,13 +43,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const body = await request.json()
 
-    // Update MSDS item
     const { error: updateError } = await supabase
       .from("msds_items")
       .update({
         name: body.name,
         pdf_file_name: body.pdfFileName,
         pdf_file_url: body.pdfUrl,
+        warning_label_pdf_url: body.warningLabelPdfUrl,
+        warning_label_pdf_name: body.warningLabelPdfName,
+        management_guidelines_pdf_url: body.managementGuidelinesPdfUrl,
+        management_guidelines_pdf_name: body.managementGuidelinesPdfName,
         usage: body.usage,
         updated_at: new Date().toISOString(),
       })

@@ -49,14 +49,6 @@ export default async function MsdsDetailPage({ params }: { params: Promise<{ id:
             </Link>
             <h1 className="text-xl font-bold">MSDS 상세정보</h1>
           </div>
-          {item.pdfFileName && (
-            <a href={item.pdfUrl || `/pdfs/${item.pdfFileName}`} target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                PDF 다운로드
-              </Button>
-            </a>
-          )}
         </div>
       </header>
 
@@ -111,18 +103,23 @@ export default async function MsdsDetailPage({ params }: { params: Promise<{ id:
             </Card>
 
             {/* Warning Symbols */}
-            {item.warningSymbols && item.warningSymbols.length > 0 && (
+            {item.warningSymbolsData && item.warningSymbolsData.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>경고 표지</CardTitle>
+                  <CardTitle>그림문자</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-4">
-                    {item.warningSymbols.map((symbolId) => (
-                      <div key={symbolId} className="flex flex-col items-center gap-1">
-                        <div className="w-16 h-16 bg-yellow-100 rounded-lg flex items-center justify-center border border-yellow-300">
-                          <span className="text-2xl font-bold text-yellow-700">{symbolId}</span>
-                        </div>
+                    {item.warningSymbolsData.map((symbol) => (
+                      <div key={symbol.id} className="flex flex-col items-center gap-2">
+                        {symbol.imageUrl && (
+                          <img
+                            src={symbol.imageUrl || "/placeholder.svg"}
+                            alt={symbol.name}
+                            className="w-16 h-16 object-contain"
+                          />
+                        )}
+                        <span className="text-xs text-center">{symbol.name}</span>
                       </div>
                     ))}
                   </div>
@@ -131,18 +128,23 @@ export default async function MsdsDetailPage({ params }: { params: Promise<{ id:
             )}
 
             {/* Protective Equipment */}
-            {item.hazards && item.hazards.length > 0 && (
+            {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>보호장구</CardTitle>
+                  <CardTitle>보호구</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-4">
-                    {item.hazards.map((hazardId) => (
-                      <div key={hazardId} className="flex flex-col items-center gap-1">
-                        <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-300">
-                          <span className="text-2xl font-bold text-blue-700">{hazardId}</span>
-                        </div>
+                    {item.protectiveEquipmentData.map((equipment) => (
+                      <div key={equipment.id} className="flex flex-col items-center gap-2">
+                        {equipment.imageUrl && (
+                          <img
+                            src={equipment.imageUrl || "/placeholder.svg"}
+                            alt={equipment.name}
+                            className="w-16 h-16 object-contain"
+                          />
+                        )}
+                        <span className="text-xs text-center">{equipment.name}</span>
                       </div>
                     ))}
                   </div>
@@ -153,28 +155,64 @@ export default async function MsdsDetailPage({ params }: { params: Promise<{ id:
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* PDF Info */}
-            {item.pdfFileName && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>PDF 문서</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>문서 다운로드</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* MSDS PDF */}
+                {item.pdfFileName && item.pdfUrl && (
                   <a
-                    href={item.pdfUrl || `/pdfs/${item.pdfFileName}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={item.pdfUrl}
+                    download={item.pdfFileName}
                     className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors"
                   >
-                    <FileText className="h-8 w-8 text-red-500" />
+                    <FileText className="h-8 w-8 text-green-600" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.pdfFileName}</p>
-                      <p className="text-sm text-muted-foreground">PDF 열기 →</p>
+                      <p className="font-medium text-sm">MSDS</p>
+                      <p className="text-xs text-muted-foreground">PDF 다운로드 →</p>
                     </div>
+                    <Download className="h-4 w-4 text-muted-foreground" />
                   </a>
-                </CardContent>
-              </Card>
-            )}
+                )}
+
+                {/* Warning Label PDF */}
+                {item.warningLabelPdfName && item.warningLabelPdfUrl && (
+                  <a
+                    href={item.warningLabelPdfUrl}
+                    download={item.warningLabelPdfName}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors"
+                  >
+                    <FileText className="h-8 w-8 text-orange-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">경고표지</p>
+                      <p className="text-xs text-muted-foreground">PDF 다운로드 →</p>
+                    </div>
+                    <Download className="h-4 w-4 text-muted-foreground" />
+                  </a>
+                )}
+
+                {/* Management Guidelines PDF */}
+                {item.managementGuidelinesPdfName && item.managementGuidelinesPdfUrl && (
+                  <a
+                    href={item.managementGuidelinesPdfUrl}
+                    download={item.managementGuidelinesPdfName}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors"
+                  >
+                    <FileText className="h-8 w-8 text-blue-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">관리요령</p>
+                      <p className="text-xs text-muted-foreground">PDF 다운로드 →</p>
+                    </div>
+                    <Download className="h-4 w-4 text-muted-foreground" />
+                  </a>
+                )}
+
+                {!item.pdfUrl && !item.warningLabelPdfUrl && !item.managementGuidelinesPdfUrl && (
+                  <p className="text-sm text-muted-foreground text-center py-4">다운로드 가능한 문서가 없습니다</p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* QR Code Access Info */}
             <Card>

@@ -73,6 +73,7 @@ export function QRPrintModal({ item, onClose }: QRPrintModalProps) {
                   margin-top: 20px;
                   padding-top: 20px;
                   border-top: 1px solid #e5e7eb;
+                  text-align: left;
                 }
               </style>
             </head>
@@ -81,9 +82,15 @@ export function QRPrintModal({ item, onClose }: QRPrintModalProps) {
                 <div class="qr-title">${item.name}</div>
                 <div class="qr-code">${printRef.current?.innerHTML}</div>
                 <div class="qr-info">ID: ${item.id}</div>
-                <div class="qr-info">용도: ${item.purpose || "N/A"}</div>
+                <div class="qr-info">용도: ${item.usage || "N/A"}</div>
                 <div class="qr-url">URL: ${qrValue}</div>
-                <div class="qr-note">• QR코드를 스캔하면 해당 MSDS 상세 정보로 이동합니다<br>• 인쇄 시 A4 용지에 최적화되어 출력됩니다</div>
+                <div class="qr-note">
+                  • QR코드를 스캔하면 다음 자료를 확인할 수 있습니다:<br>
+                  &nbsp;&nbsp;- MSDS (물질안전보건자료)<br>
+                  &nbsp;&nbsp;- 경고표지<br>
+                  &nbsp;&nbsp;- 화학물질 작업공정별 관리요령<br>
+                  • 인쇄 시 A4 용지에 최적화되어 출력됩니다
+                </div>
               </div>
             </body>
           </html>
@@ -136,7 +143,7 @@ export function QRPrintModal({ item, onClose }: QRPrintModalProps) {
         ctx.font = "14px Arial"
         ctx.fillStyle = "#6b7280"
         ctx.fillText(`ID: ${item.id}`, canvas.width / 2, 420)
-        ctx.fillText(`용도: ${item.purpose || "N/A"}`, canvas.width / 2, 445)
+        ctx.fillText(`용도: ${item.usage || "N/A"}`, canvas.width / 2, 445)
 
         // URL
         ctx.font = "11px Arial"
@@ -180,7 +187,7 @@ export function QRPrintModal({ item, onClose }: QRPrintModalProps) {
           <div className="text-center space-y-1">
             <p className="font-semibold text-lg">{item.name}</p>
             <p className="text-sm text-muted-foreground">ID: {item.id}</p>
-            <p className="text-sm text-muted-foreground">용도: {item.purpose || "N/A"}</p>
+            <p className="text-sm text-muted-foreground">용도: {item.usage || "N/A"}</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-md break-all">URL: {qrValue}</p>
           </div>
 
@@ -200,9 +207,11 @@ export function QRPrintModal({ item, onClose }: QRPrintModalProps) {
             </Button>
           </div>
 
-          {/* 안내 메시지 */}
           <div className="text-xs text-muted-foreground text-center space-y-1 pt-4 border-t w-full">
-            <p>• QR코드를 스캔하면 해당 MSDS 상세 정보로 이동합니다</p>
+            <p>• QR코드를 스캔하면 다음 자료를 확인할 수 있습니다:</p>
+            <p className="pl-4">- MSDS (물질안전보건자료)</p>
+            <p className="pl-4">- 경고표지</p>
+            <p className="pl-4">- 화학물질 작업공정별 관리요령</p>
             <p>• 인쇄 시 A4 용지에 최적화되어 출력됩니다</p>
           </div>
         </div>

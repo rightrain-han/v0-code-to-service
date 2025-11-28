@@ -3,6 +3,10 @@ export interface MsdsItem {
   name: string
   pdfFileName: string
   pdfUrl?: string
+  warningLabelPdfUrl?: string
+  warningLabelPdfName?: string
+  managementGuidelinesPdfUrl?: string
+  managementGuidelinesPdfName?: string
   hazards: string[]
   usage: string
   reception: string[]
@@ -11,6 +15,8 @@ export interface MsdsItem {
   warningSymbolsData?: WarningSymbol[]
   protectiveEquipmentData?: ProtectiveEquipment[]
   qrCode?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface WarningSymbol {

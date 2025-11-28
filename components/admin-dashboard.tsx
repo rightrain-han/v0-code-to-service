@@ -15,7 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import ImageUpload from "./image-upload"
 import ExcelUpload from "./excel-upload"
-import { Trash2, Plus, QrCode, Upload, Edit, FileText, ChevronLeft, ChevronRight } from "lucide-react"
+import { Trash2, Plus, QrCode, Upload, Edit, FileText, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
+import { GenerateDocumentsDialog } from "./generate-documents-dialog"
 
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment } from "@/types/msds"
 import { QRPrintModal } from "@/components/qr-print-modal"
@@ -71,11 +72,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [editingItem, setEditingItem] = useState<MsdsItem | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false) // This state is now unused in the updates, will be removed conceptually.
-  const [formData, setFormData] = useState<FormData>(initialFormData) // This state is now unused in the updates, will be removed conceptually.
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [searchTerm, setSearchTerm] = useState("") // This state is now unused in the updates, will be removed conceptually.
+  const [searchTerm, setSearchTerm] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -109,9 +108,13 @@ export default function AdminDashboard() {
   })
 
   const [uploadingPdf, setUploadingPdf] = useState(false)
-  const [editPdfFile, setEditPdfFile] = useState<File | null>(null)
+  const [editMsdsPdfFile, setEditMsdsPdfFile] = useState<File | null>(null)
+  const [editWarningLabelFile, setEditWarningLabelFile] = useState<File | null>(null)
+  const [editGuidelinesFile, setEditGuidelinesFile] = useState<File | null>(null)
 
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false)
+  const [selectedGenerateItem, setSelectedGenerateItem] = useState<MsdsItem | null>(null)
 
   const receptionOptions = Array.from(new Set(msdsItems.flatMap((item) => item.reception || []))).sort()
 
@@ -179,50 +182,29 @@ export default function AdminDashboard() {
     setTimeout(() => setMessage(null), 5000)
   }
 
-  const totalPages = Math.ceil(msdsItems.length / itemsPerPage)
+  const filteredItems = msdsItems.filter((item) => {
+    if (!searchTerm) return true
+    const search = searchTerm.toLowerCase()
+    return (
+      item.name?.toLowerCase().includes(search) ||
+      item.usage?.toLowerCase().includes(search) ||
+      item.reception?.some((r) => r.toLowerCase().includes(search)) ||
+      item.laws?.some((l) => l.toLowerCase().includes(search))
+    )
+  })
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentItems = msdsItems.slice(startIndex, endIndex)
+  const currentItems = filteredItems.slice(startIndex, endIndex)
 
-  const handlePdfUpload = async (item: MsdsItem, file: File) => {
-    try {
-      setUploadingPdf(true)
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("msdsId", item.id.toString())
-
-      const response = await fetch("/api/upload/pdf", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("PDF 업로드 실패")
-      }
-
-      await loadMsdsItems()
-      showMessage("success", "PDF가 업로드되었습니다.")
-    } catch (error) {
-      console.error("PDF upload error:", error)
-      showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
-    } finally {
-      setUploadingPdf(false)
-    }
-  }
-
-  const handleEdit = (item: MsdsItem) => {
-    setEditingItem(item)
-    setEditPdfFile(null)
-    setShowEditDialog(true)
-  }
-
-  const handleUploadEditPdf = async () => {
-    if (!editPdfFile || !editingItem) return
+  const handleUploadMsdsPdf = async () => {
+    if (!editMsdsPdfFile || !editingItem) return
 
     try {
       setUploadingPdf(true)
       const formData = new FormData()
-      formData.append("file", editPdfFile)
+      formData.append("file", editMsdsPdfFile)
       formData.append("msdsId", editingItem.id.toString())
       formData.append("msdsName", editingItem.name)
 
@@ -239,14 +221,88 @@ export default function AdminDashboard() {
         pdfFileName: data.fileName,
         pdfUrl: data.url,
       })
-      setEditPdfFile(null)
-      showMessage("success", "PDF 파일이 업로드되었습니다.")
+      setEditMsdsPdfFile(null)
+      showMessage("success", "MSDS PDF가 업로드되었습니다.")
     } catch (error) {
       console.error("PDF 업로드 오류:", error)
       showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
     } finally {
       setUploadingPdf(false)
     }
+  }
+
+  const handleUploadWarningLabel = async () => {
+    if (!editWarningLabelFile || !editingItem) return
+
+    try {
+      setUploadingPdf(true)
+      const formData = new FormData()
+      formData.append("file", editWarningLabelFile)
+      formData.append("msdsId", editingItem.id.toString())
+      formData.append("msdsName", editingItem.name)
+
+      const response = await fetch("/api/upload/warning-label", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("경고표지 업로드 실패")
+
+      const data = await response.json()
+      setEditingItem({
+        ...editingItem,
+        warningLabelPdfUrl: data.url,
+        warningLabelPdfName: data.fileName,
+      })
+      setEditWarningLabelFile(null)
+      showMessage("success", "경고표지 PDF가 업로드되었습니다.")
+    } catch (error) {
+      console.error("경고표지 업로드 오류:", error)
+      showMessage("error", "경고표지 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingPdf(false)
+    }
+  }
+
+  const handleUploadGuidelines = async () => {
+    if (!editGuidelinesFile || !editingItem) return
+
+    try {
+      setUploadingPdf(true)
+      const formData = new FormData()
+      formData.append("file", editGuidelinesFile)
+      formData.append("msdsId", editingItem.id.toString())
+      formData.append("msdsName", editingItem.name)
+
+      const response = await fetch("/api/upload/management-guidelines", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("관리요령 업로드 실패")
+
+      const data = await response.json()
+      setEditingItem({
+        ...editingItem,
+        managementGuidelinesPdfUrl: data.url,
+        managementGuidelinesPdfName: data.fileName,
+      })
+      setEditGuidelinesFile(null)
+      showMessage("success", "관리요령 PDF가 업로드되었습니다.")
+    } catch (error) {
+      console.error("관리요령 업로드 오류:", error)
+      showMessage("error", "관리요령 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingPdf(false)
+    }
+  }
+
+  const handleEdit = (item: MsdsItem) => {
+    setEditingItem(item)
+    setEditMsdsPdfFile(null)
+    setEditWarningLabelFile(null)
+    setEditGuidelinesFile(null)
+    setShowEditDialog(true)
   }
 
   const handleSaveEdit = async () => {
@@ -265,6 +321,10 @@ export default function AdminDashboard() {
           laws: editingItem.laws || [],
           pdfFileName: editingItem.pdfFileName,
           pdfUrl: editingItem.pdfUrl,
+          warningLabelPdfUrl: editingItem.warningLabelPdfUrl,
+          warningLabelPdfName: editingItem.warningLabelPdfName,
+          managementGuidelinesPdfUrl: editingItem.managementGuidelinesPdfUrl,
+          managementGuidelinesPdfName: editingItem.managementGuidelinesPdfName,
         }),
       })
 
@@ -273,7 +333,9 @@ export default function AdminDashboard() {
       await loadMsdsItems()
       setShowEditDialog(false)
       setEditingItem(null)
-      setEditPdfFile(null)
+      setEditMsdsPdfFile(null)
+      setEditWarningLabelFile(null)
+      setEditGuidelinesFile(null)
       showMessage("success", "MSDS 항목이 수정되었습니다.")
     } catch (error) {
       console.error("저장 오류:", error)
@@ -299,6 +361,11 @@ export default function AdminDashboard() {
   const handleShowQR = (item: MsdsItem) => {
     setSelectedQRItem(item)
     setShowQRModal(true)
+  }
+
+  const handleGenerate = (item: MsdsItem) => {
+    setSelectedGenerateItem(item)
+    setShowGenerateDialog(true)
   }
 
   const handleEditSymbol = (symbol: WarningSymbol) => {
@@ -427,6 +494,16 @@ export default function AdminDashboard() {
     }
   }
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-"
+    const date = new Date(dateString)
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -467,23 +544,29 @@ export default function AdminDashboard() {
         <Tabs defaultValue="msds" className="space-y-6">
           <TabsList>
             <TabsTrigger value="msds">MSDS 관리</TabsTrigger>
-            <TabsTrigger value="symbols">경고 표지</TabsTrigger>
-            <TabsTrigger value="equipment">보호 장구</TabsTrigger>
+            <TabsTrigger value="symbols">그림문자</TabsTrigger>
+            <TabsTrigger value="equipment">보호구</TabsTrigger>
             <TabsTrigger value="upload">엑셀 업로드</TabsTrigger>
           </TabsList>
 
           <TabsContent value="msds" className="space-y-6">
-            {/* Search and Add section removed and replaced with new structure */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">MSDS 항목 관리 ({msdsItems.length}개)</h2>
-              {/* Changed 'New MSDS Add' button to 'Add New Item' */}
-              <Button className="bg-black text-white hover:bg-gray-800">
-                <Plus className="w-4 h-4 mr-2" />새 항목 추가
-              </Button>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 max-w-md">
+                <Input
+                  type="text"
+                  placeholder="물질명, 용도, 장소로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full"
+                />
+              </div>
+              <div className="text-sm text-muted-foreground">총 {filteredItems.length}개 항목</div>
             </div>
 
             {loading ? (
-              // Changed loading message
               <div className="text-center py-12">데이터를 불러오는 중...</div>
             ) : (
               <div className="space-y-4">
@@ -499,20 +582,38 @@ export default function AdminDashboard() {
                             <Badge className="bg-blue-500 text-white">{item.usage || "순수시약"}</Badge>
                           </div>
 
-                          {/* PDF 정보 */}
-                          {item.pdfFileName && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <FileText className="w-4 h-4 text-gray-500" />
-                              <span className="font-medium">PDF:</span>
-                              <span className="text-gray-600">{item.pdfFileName}</span>
+                          {item.updatedAt && (
+                            <div className="text-sm text-muted-foreground">
+                              최근 수정일: {formatDate(item.updatedAt)}
                             </div>
                           )}
+
+                          <div className="flex items-center gap-4 text-sm">
+                            {item.pdfFileName && (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <FileText className="w-4 h-4" />
+                                <span>MSDS</span>
+                              </div>
+                            )}
+                            {item.warningLabelPdfName && (
+                              <div className="flex items-center gap-1 text-orange-600">
+                                <AlertTriangle className="w-4 h-4" />
+                                <span>경고표지</span>
+                              </div>
+                            )}
+                            {item.managementGuidelinesPdfName && (
+                              <div className="flex items-center gap-1 text-blue-600">
+                                <FileText className="w-4 h-4" />
+                                <span>관리요령</span>
+                              </div>
+                            )}
+                          </div>
 
                           {/* 경고표지 및 보호장구 개수 */}
                           <div className="flex items-center gap-4 text-sm">
                             {/* Added display for warningSymbolsData and protectiveEquipmentData counts */}
-                            <Badge variant="outline">경고표지: {item.warningSymbolsData?.length || 0}개</Badge>
-                            <Badge variant="outline">보호장구: {item.protectiveEquipmentData?.length || 0}개</Badge>
+                            <Badge variant="outline">그림문자: {item.warningSymbolsData?.length || 0}개</Badge>
+                            <Badge variant="outline">보호구: {item.protectiveEquipmentData?.length || 0}개</Badge>
                           </div>
 
                           {/* 장소 */}
@@ -539,24 +640,9 @@ export default function AdminDashboard() {
                             QR코드
                           </Button>
 
-                          {/* PDF 업로드 버튼 */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={uploadingPdf === item.id}
-                            onClick={() => {
-                              const input = document.createElement("input")
-                              input.type = "file"
-                              input.accept = "application/pdf"
-                              input.onchange = (e) => {
-                                const file = (e.target as HTMLInputElement).files?.[0]
-                                if (file) handlePdfUpload(item, file)
-                              }
-                              input.click()
-                            }}
-                          >
-                            <Upload className="w-4 h-4 mr-1" />
-                            {uploadingPdf === item.id ? "업로드 중..." : "PDF 업로드"}
+                          <Button variant="outline" size="sm" onClick={() => handleGenerate(item)}>
+                            <FileText className="w-4 h-4 mr-1" />
+                            생성
                           </Button>
 
                           <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
@@ -579,7 +665,7 @@ export default function AdminDashboard() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6 pt-6 border-t">
                 <div className="text-sm text-muted-foreground">
-                  {startIndex + 1}-{Math.min(endIndex, msdsItems.length)} / {msdsItems.length}개 항목
+                  {startIndex + 1}-{Math.min(endIndex, filteredItems.length)} / {filteredItems.length}개 항목
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -633,8 +719,7 @@ export default function AdminDashboard() {
           {/* 경고 표지 탭 */}
           <TabsContent value="symbols" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">경고 표지 관리 ({warningSymbols.length}개)</h2>
-              {/* Removed Add new symbol button */}
+              <h2 className="text-xl font-semibold">그림문자 관리 ({warningSymbols.length}개)</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -669,8 +754,7 @@ export default function AdminDashboard() {
           {/* 보호 장구 탭 */}
           <TabsContent value="equipment" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">보호 장구 관리 ({protectiveEquipment.length}개)</h2>
-              {/* Removed Add new equipment button */}
+              <h2 className="text-xl font-semibold">보호구 관리 ({protectiveEquipment.length}개)</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -729,39 +813,118 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div>
-                <Label>PDF 파일</Label>
-                <div className="space-y-2 mt-2">
-                  {editingItem.pdfFileName && (
-                    <div className="flex items-center gap-2 p-2 bg-muted rounded">
-                      <FileText className="h-4 w-4" />
-                      <span className="text-sm flex-1">{editingItem.pdfFileName}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingItem({ ...editingItem, pdfFileName: "", pdfUrl: "" })}
-                      >
-                        <Trash2 className="h-4 w-4" />
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold">PDF 파일 업로드</h3>
+
+                {/* MSDS PDF */}
+                <div>
+                  <Label>MSDS (PDF)</Label>
+                  <div className="space-y-2 mt-2">
+                    {editingItem.pdfFileName && (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <FileText className="h-4 w-4 text-green-600" />
+                        <span className="text-sm flex-1">{editingItem.pdfFileName}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingItem({ ...editingItem, pdfFileName: "", pdfUrl: "" })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setEditMsdsPdfFile(e.target.files?.[0] || null)}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleUploadMsdsPdf} disabled={!editMsdsPdfFile || uploadingPdf} size="sm">
+                        {uploadingPdf ? "업로드 중..." : "업로드"}
                       </Button>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setEditPdfFile(e.target.files?.[0] || null)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleUploadEditPdf} disabled={!editPdfFile || uploadingPdf} size="sm">
-                      {uploadingPdf ? "업로드 중..." : "업로드"}
-                    </Button>
+                  </div>
+                </div>
+
+                {/* Warning Label PDF */}
+                <div>
+                  <Label>경고표지 (PDF)</Label>
+                  <div className="space-y-2 mt-2">
+                    {editingItem.warningLabelPdfName && (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                        <span className="text-sm flex-1">{editingItem.warningLabelPdfName}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setEditingItem({ ...editingItem, warningLabelPdfName: "", warningLabelPdfUrl: "" })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setEditWarningLabelFile(e.target.files?.[0] || null)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleUploadWarningLabel}
+                        disabled={!editWarningLabelFile || uploadingPdf}
+                        size="sm"
+                      >
+                        {uploadingPdf ? "업로드 중..." : "업로드"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Management Guidelines PDF */}
+                <div>
+                  <Label>화학물질 작업공정별 관리요령 (PDF)</Label>
+                  <div className="space-y-2 mt-2">
+                    {editingItem.managementGuidelinesPdfName && (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm flex-1">{editingItem.managementGuidelinesPdfName}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setEditingItem({
+                              ...editingItem,
+                              managementGuidelinesPdfName: "",
+                              managementGuidelinesPdfUrl: "",
+                            })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setEditGuidelinesFile(e.target.files?.[0] || null)}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleUploadGuidelines} disabled={!editGuidelinesFile || uploadingPdf} size="sm">
+                        {uploadingPdf ? "업로드 중..." : "업로드"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* 경고표지 선택 */}
               <div>
-                <Label>경고 표지</Label>
+                <Label>그림문자</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
                   {warningSymbols.map((symbol) => (
                     <div key={symbol.id} className="flex items-center space-x-2">
@@ -790,7 +953,7 @@ export default function AdminDashboard() {
 
               {/* 보호장구 선택 */}
               <div>
-                <Label>보호 장구</Label>
+                <Label>보호구</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
                   {protectiveEquipment.map((equipment) => (
                     <div key={equipment.id} className="flex items-center space-x-2">
@@ -890,7 +1053,7 @@ export default function AdminDashboard() {
       <Dialog open={isSymbolDialogOpen} onOpenChange={setIsSymbolDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>경고 표지 수정</DialogTitle>
+            <DialogTitle>그림문자 수정</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -929,7 +1092,7 @@ export default function AdminDashboard() {
       <Dialog open={isEquipmentDialogOpen} onOpenChange={setIsEquipmentDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>보호 장구 수정</DialogTitle>
+            <DialogTitle>보호구 수정</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -963,6 +1126,18 @@ export default function AdminDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 생성 문서 다이얼로그 */}
+      {showGenerateDialog && selectedGenerateItem && (
+        <GenerateDocumentsDialog
+          item={selectedGenerateItem}
+          open={showGenerateDialog}
+          onClose={() => {
+            setShowGenerateDialog(false)
+            setSelectedGenerateItem(null)
+          }}
+        />
+      )}
     </div>
   )
 }

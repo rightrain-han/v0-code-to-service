@@ -15,6 +15,13 @@ const SAMPLE_DATA = [
     warningSymbols: ["corrosive", "toxic"],
     warningSymbolsData: DEFAULT_WARNING_SYMBOLS.filter((s) => ["corrosive", "toxic"].includes(s.id)),
     protectiveEquipmentData: DEFAULT_PROTECTIVE_EQUIPMENT.filter((e) => ["toxic", "corrosive"].includes(e.id)),
+    warningLabelPdfUrl: "",
+    warningLabelPdfName: "",
+    managementGuidelinesPdfUrl: "",
+    managementGuidelinesPdfName: "",
+    qrCode: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 2,
@@ -28,6 +35,13 @@ const SAMPLE_DATA = [
     warningSymbols: ["corrosive"],
     warningSymbolsData: DEFAULT_WARNING_SYMBOLS.filter((s) => s.id === "corrosive"),
     protectiveEquipmentData: DEFAULT_PROTECTIVE_EQUIPMENT.filter((e) => e.id === "corrosive"),
+    warningLabelPdfUrl: "",
+    warningLabelPdfName: "",
+    managementGuidelinesPdfUrl: "",
+    managementGuidelinesPdfName: "",
+    qrCode: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ]
 
@@ -36,7 +50,7 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json({ items: SAMPLE_DATA })
+      return NextResponse.json({ items: [] })
     }
 
     const { data: msdsItems, error: msdsError } = await supabase
@@ -51,7 +65,6 @@ export async function GET() {
 
     if (msdsError) {
       console.error("[v0] MSDS query error:", msdsError)
-      // Rate limit이나 다른 Supabase 에러 발생 시 샘플 데이터 대신 빈 배열 반환
       return NextResponse.json({ items: [], error: msdsError.message }, { status: 500 })
     }
 
@@ -59,16 +72,6 @@ export async function GET() {
       console.log("[v0] No MSDS items found")
       return NextResponse.json({ items: [] })
     }
-
-    console.log(
-      "[v0] First item raw data:",
-      JSON.stringify({
-        id: msdsItems[0].id,
-        name: msdsItems[0].name,
-        msds_warning_symbols: msdsItems[0].msds_warning_symbols,
-        msds_protective_equipment: msdsItems[0].msds_protective_equipment,
-      }),
-    )
 
     const [warningSymbolsResponse, protectiveEquipmentResponse, locationOptionsResponse] = await Promise.all([
       supabase.from("warning_symbols").select("*"),
@@ -79,17 +82,11 @@ export async function GET() {
     const warningSymbols = warningSymbolsResponse.data || []
     const protectiveEquipment = protectiveEquipmentResponse.data || []
 
-    console.log(
-      "[v0] warning_symbols from DB:",
-      JSON.stringify(warningSymbols.map((s) => ({ id: s.id, name: s.name }))),
-    )
-
     const locationMap: Record<string, string> = {}
     ;(locationOptionsResponse.data || []).forEach((opt: { value: string; label: string }) => {
       locationMap[opt.value] = opt.label
     })
 
-    // 데이터 변환
     const enrichedItems = msdsItems.map((item) => {
       const warningSymbolIds =
         item.msds_warning_symbols?.map((ws: { warning_symbol_id: string }) => ws.warning_symbol_id) || []
@@ -97,27 +94,19 @@ export async function GET() {
         item.msds_protective_equipment?.map((pe: { protective_equipment_id: string }) => pe.protective_equipment_id) ||
         []
 
-      if (item.id === 1) {
-        console.log("[v0] Item 1 warningSymbolIds:", warningSymbolIds)
-        console.log("[v0] Item 1 protectiveEquipmentIds:", protectiveEquipmentIds)
-      }
-
       const configItems = item.msds_config_items || []
 
       const receptionRaw = configItems
         .filter((c: { config_type: string }) => c.config_type === "reception")
         .map((c: { config_value: string }) => c.config_value)
 
-      // config_value가 "19,20,17" 형태의 쉼표 구분 문자열일 수 있음
       const reception: string[] = []
       receptionRaw.forEach((val: string) => {
-        // 쉼표로 분리된 ID들을 처리
         const ids = val
           .split(",")
           .map((id: string) => id.trim())
           .filter(Boolean)
         ids.forEach((id: string) => {
-          // ID를 장소 이름으로 변환 (예: "19" -> "LNG 3호기 CPP")
           const locationName = locationMap[id] || locationMap[id.padStart(2, "0")] || id
           if (!reception.includes(locationName)) {
             reception.push(locationName)
@@ -156,14 +145,20 @@ export async function GET() {
         name: item.name,
         pdfFileName: item.pdf_file_name || "",
         pdfUrl: item.pdf_file_url || "",
+        warningLabelPdfUrl: item.warning_label_pdf_url || "",
+        warningLabelPdfName: item.warning_label_pdf_name || "",
+        managementGuidelinesPdfUrl: item.management_guidelines_pdf_url || "",
+        managementGuidelinesPdfName: item.management_guidelines_pdf_name || "",
         hazards: protectiveEquipmentIds,
         usage: item.usage || "",
-        reception, // 변환된 장소 이름 배열
+        reception,
         laws,
         warningSymbols: warningSymbolIds,
         warningSymbolsData,
         protectiveEquipmentData,
         qrCode: item.qr_code || "",
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
       }
     })
 
@@ -195,6 +190,10 @@ export async function POST(request: Request) {
         pdf_file_name: body.pdfFileName,
         pdf_file_url: body.pdfUrl,
         usage: body.usage,
+        warning_label_pdf_url: body.warningLabelPdfUrl,
+        warning_label_pdf_name: body.warningLabelPdfName,
+        management_guidelines_pdf_url: body.managementGuidelinesPdfUrl,
+        management_guidelines_pdf_name: body.managementGuidelinesPdfName,
       })
       .select()
       .single()

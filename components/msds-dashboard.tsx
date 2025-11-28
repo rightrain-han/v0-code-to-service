@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Search, Eye, Download, RefreshCw, Menu, Shield, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Download, RefreshCw, Menu, Shield, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment } from "@/types/msds"
@@ -128,17 +128,37 @@ function MsdsDashboard() {
   }
 
   const handleCardClick = (item: MsdsItem, e: React.MouseEvent) => {
-    if (item.pdfUrl || item.pdfFileName) {
-      window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
-    }
+    // Card click now does nothing - users must use the download buttons
   }
 
   const handlePdfDownload = (item: MsdsItem, e: React.MouseEvent) => {
     e.stopPropagation()
-    const link = document.createElement("a")
-    link.href = item.pdfUrl || `/pdfs/${item.pdfFileName}`
-    link.download = item.pdfFileName || `${item.name}.pdf`
-    link.click()
+    if (item.pdfUrl) {
+      const link = document.createElement("a")
+      link.href = item.pdfUrl
+      link.download = item.pdfFileName || `${item.name}_MSDS.pdf`
+      link.click()
+    }
+  }
+
+  const handleWarningLabelDownload = (item: MsdsItem, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (item.warningLabelPdfUrl) {
+      const link = document.createElement("a")
+      link.href = item.warningLabelPdfUrl
+      link.download = item.warningLabelPdfName || `${item.name}_경고표지.pdf`
+      link.click()
+    }
+  }
+
+  const handleGuidelinesDownload = (item: MsdsItem, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (item.managementGuidelinesPdfUrl) {
+      const link = document.createElement("a")
+      link.href = item.managementGuidelinesPdfUrl
+      link.download = item.managementGuidelinesPdfName || `${item.name}_관리요령.pdf`
+      link.click()
+    }
   }
 
   const getPageNumbers = () => {
@@ -285,8 +305,7 @@ function MsdsDashboard() {
             paginatedData.map((item) => (
               <Card
                 key={item.id}
-                className="group cursor-pointer hover:shadow-lg transition-all duration-200 bg-white border border-gray-200 overflow-hidden relative"
-                onClick={(e) => handleCardClick(item, e)}
+                className="group hover:shadow-lg transition-all duration-200 bg-white border border-gray-200 overflow-hidden relative"
               >
                 <div
                   className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
@@ -301,36 +320,48 @@ function MsdsDashboard() {
 
                   <div className="flex items-center justify-between mb-3">
                     <Badge className={`text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
+                  </div>
 
+                  <div className="mb-3 space-y-2">
                     {item.pdfUrl && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={(e) => handlePdfDownload(item, e)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start text-xs h-8 bg-transparent"
+                        onClick={(e) => handlePdfDownload(item, e)}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        MSDS 다운로드
+                      </Button>
+                    )}
+                    {item.warningLabelPdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start text-xs h-8 bg-transparent"
+                        onClick={(e) => handleWarningLabelDownload(item, e)}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        경고표지 다운로드
+                      </Button>
+                    )}
+                    {item.managementGuidelinesPdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start text-xs h-8 bg-transparent"
+                        onClick={(e) => handleGuidelinesDownload(item, e)}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        관리요령 다운로드
+                      </Button>
                     )}
                   </div>
 
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3 text-orange-500" />
-                      경고 표지
+                      그림문자
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {item.warningSymbolsData && item.warningSymbolsData.length > 0 ? (
