@@ -234,3 +234,5 @@ export function ImageUpload({ currentImageUrl, onImageChange, itemType, classNam
     </div>
   )
 }
+
+export default ImageUpload

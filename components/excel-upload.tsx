@@ -474,3 +474,5 @@ export function ExcelUpload({ onUploadComplete }: { onUploadComplete?: () => voi
     </Card>
   )
 }
+
+export default ExcelUpload

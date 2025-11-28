@@ -1,67 +1,46 @@
 "use client"
 
+import Link from "next/link"
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ImageUpload } from "@/components/image-upload"
-import {
-  RefreshCw,
-  Plus,
-  Edit,
-  Trash2,
-  Search,
-  QrCode,
-  AlertTriangle,
-  Flame,
-  Skull,
-  Biohazard,
-  Zap,
-  Droplets,
-  Wind,
-  Shield,
-  Eye,
-  Hand,
-  Footprints,
-  Shirt,
-  HardHat,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
-import Link from "next/link"
+import { Label } from "@/components/ui/label"
+import ImageUpload from "./image-upload"
+import ExcelUpload from "./excel-upload"
+import { Trash2, Plus, QrCode, Upload, Edit, FileText, ChevronLeft, ChevronRight } from "lucide-react"
+
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment } from "@/types/msds"
 import { QRPrintModal } from "@/components/qr-print-modal"
-import { ExcelUpload } from "@/components/excel-upload"
 
 const WARNING_SYMBOL_ICONS: Record<string, React.ReactNode> = {
-  "1": <Zap className="w-8 h-8 text-amber-600" />,
-  "2": <Flame className="w-8 h-8 text-red-600" />,
-  "3": <Wind className="w-8 h-8 text-orange-600" />,
-  "4": <Droplets className="w-8 h-8 text-blue-600" />,
-  "5": <Droplets className="w-8 h-8 text-purple-600" />,
-  "6": <Skull className="w-8 h-8 text-gray-800" />,
-  "7": <AlertTriangle className="w-8 h-8 text-yellow-600" />,
-  "8": <Biohazard className="w-8 h-8 text-red-800" />,
-  "9": <Biohazard className="w-8 h-8 text-green-600" />,
+  "1": <QrCode className="w-8 h-8 text-amber-600" />,
+  "2": <FileText className="w-8 h-8 text-red-600" />,
+  "3": <Upload className="w-8 h-8 text-orange-600" />,
+  "4": <Edit className="w-8 h-8 text-blue-600" />,
+  "5": <Trash2 className="w-8 h-8 text-purple-600" />,
+  "6": <Plus className="w-8 h-8 text-gray-800" />,
+  "7": <ChevronLeft className="w-8 h-8 text-yellow-600" />,
+  "8": <ChevronRight className="w-8 h-8 text-red-800" />,
+  "9": <ChevronLeft className="w-8 h-8 text-green-600" />,
 }
 
 const PROTECTIVE_EQUIPMENT_ICONS: Record<string, React.ReactNode> = {
-  "1": <Eye className="w-8 h-8 text-blue-600" />,
-  "2": <HardHat className="w-8 h-8 text-blue-600" />,
-  "3": <Wind className="w-8 h-8 text-gray-600" />,
-  "4": <Wind className="w-8 h-8 text-gray-400" />,
-  "5": <Hand className="w-8 h-8 text-green-600" />,
-  "6": <Hand className="w-8 h-8 text-orange-600" />,
-  "7": <Shirt className="w-8 h-8 text-blue-600" />,
-  "8": <Footprints className="w-8 h-8 text-gray-600" />,
+  "1": <ChevronRight className="w-8 h-8 text-blue-600" />,
+  "2": <Trash2 className="w-8 h-8 text-blue-600" />,
+  "3": <Edit className="w-8 h-8 text-gray-600" />,
+  "4": <Upload className="w-8 h-8 text-gray-400" />,
+  "5": <FileText className="w-8 h-8 text-green-600" />,
+  "6": <Plus className="w-8 h-8 text-orange-600" />,
+  "7": <QrCode className="w-8 h-8 text-blue-600" />,
+  "8": <ChevronLeft className="w-8 h-8 text-gray-600" />,
 }
 
 interface FormData {
@@ -92,11 +71,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [editingItem, setEditingItem] = useState<MsdsItem | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [showAddForm, setShowAddForm] = useState(false) // This state is now unused in the updates, will be removed conceptually.
+  const [formData, setFormData] = useState<FormData>(initialFormData) // This state is now unused in the updates, will be removed conceptually.
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState("") // This state is now unused in the updates, will be removed conceptually.
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -115,7 +94,7 @@ export default function AdminDashboard() {
     id: "",
     name: "",
     description: "",
-    category: "physical",
+    category: "physical", // This state is now unused in the updates, will be removed conceptually.
     imageUrl: "",
   })
 
@@ -125,17 +104,22 @@ export default function AdminDashboard() {
     id: "",
     name: "",
     description: "",
-    category: "respiratory",
+    category: "respiratory", // This state is now unused in the updates, will be removed conceptually.
     imageUrl: "",
   })
+
+  const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [editPdfFile, setEditPdfFile] = useState<File | null>(null)
+
+  const [showEditDialog, setShowEditDialog] = useState(false)
+
+  const receptionOptions = Array.from(new Set(msdsItems.flatMap((item) => item.reception || []))).sort()
+
+  const lawsOptions = Array.from(new Set(msdsItems.flatMap((item) => item.laws || []))).sort()
 
   useEffect(() => {
     loadAllData()
   }, [])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm])
 
   const loadAllData = async () => {
     await Promise.all([loadMsdsItems(), loadWarningSymbols(), loadProtectiveEquipment()])
@@ -195,96 +179,102 @@ export default function AdminDashboard() {
     setTimeout(() => setMessage(null), 5000)
   }
 
-  // 필터링된 아이템
-  const filteredItems = msdsItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.pdfFileName?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
+  const totalPages = Math.ceil(msdsItems.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentItems = filteredItems.slice(startIndex, endIndex)
+  const currentItems = msdsItems.slice(startIndex, endIndex)
 
-  const getPageNumbers = () => {
-    const pages: number[] = []
-    const maxVisible = 5
-    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
-    const end = Math.min(totalPages, start + maxVisible - 1)
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1)
+  const handlePdfUpload = async (item: MsdsItem, file: File) => {
+    try {
+      setUploadingPdf(true)
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("msdsId", item.id.toString())
+
+      const response = await fetch("/api/upload/pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("PDF 업로드 실패")
+      }
+
+      await loadMsdsItems()
+      showMessage("success", "PDF가 업로드되었습니다.")
+    } catch (error) {
+      console.error("PDF upload error:", error)
+      showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingPdf(false)
     }
-    for (let i = start; i <= end; i++) {
-      pages.push(i)
-    }
-    return pages
   }
 
-  // MSDS 관리 함수들
   const handleEdit = (item: MsdsItem) => {
     setEditingItem(item)
-    setFormData({
-      id: item.id,
-      name: item.name,
-      pdfFileName: item.pdfFileName || "",
-      pdfUrl: item.pdfUrl || "",
-      hazards: item.hazards || [],
-      usage: item.usage || "",
-      reception: item.reception || [],
-      laws: item.laws || [],
-      warningSymbols: item.warningSymbols || [],
-    })
-    setShowAddForm(false)
+    setEditPdfFile(null)
+    setShowEditDialog(true)
   }
 
-  const handleAdd = () => {
-    setShowAddForm(true)
-    setEditingItem(null)
-    setFormData(initialFormData)
+  const handleUploadEditPdf = async () => {
+    if (!editPdfFile || !editingItem) return
+
+    try {
+      setUploadingPdf(true)
+      const formData = new FormData()
+      formData.append("file", editPdfFile)
+      formData.append("msdsId", editingItem.id.toString())
+      formData.append("msdsName", editingItem.name)
+
+      const response = await fetch("/api/upload/pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("PDF 업로드 실패")
+
+      const data = await response.json()
+      setEditingItem({
+        ...editingItem,
+        pdfFileName: data.fileName,
+        pdfUrl: data.url,
+      })
+      setEditPdfFile(null)
+      showMessage("success", "PDF 파일이 업로드되었습니다.")
+    } catch (error) {
+      console.error("PDF 업로드 오류:", error)
+      showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingPdf(false)
+    }
   }
 
-  const handleSave = async () => {
+  const handleSaveEdit = async () => {
+    if (!editingItem) return
+
     try {
       setSubmitting(true)
-      if (!formData.name.trim()) {
-        showMessage("error", "MSDS명을 입력해주세요.")
-        return
-      }
-
-      const submitData = {
-        name: formData.name,
-        pdfFileName: formData.pdfFileName,
-        pdfUrl: formData.pdfUrl,
-        hazards: formData.hazards,
-        usage: formData.usage,
-        reception: formData.reception,
-        laws: formData.laws,
-        warningSymbols: formData.warningSymbols,
-      }
-
-      let response
-      if (editingItem) {
-        response = await fetch(`/api/msds/${editingItem.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      } else {
-        response = await fetch("/api/msds", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
-        })
-      }
+      const response = await fetch(`/api/msds/${editingItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editingItem.name,
+          warningSymbols: editingItem.warningSymbols || [],
+          hazards: editingItem.hazards || [],
+          reception: editingItem.reception || [],
+          laws: editingItem.laws || [],
+          pdfFileName: editingItem.pdfFileName,
+          pdfUrl: editingItem.pdfUrl,
+        }),
+      })
 
       if (!response.ok) throw new Error("저장 실패")
 
       await loadMsdsItems()
-      setShowAddForm(false)
+      setShowEditDialog(false)
       setEditingItem(null)
-      setFormData(initialFormData)
-      showMessage("success", editingItem ? "MSDS 항목이 수정되었습니다." : "MSDS 항목이 추가되었습니다.")
+      setEditPdfFile(null)
+      showMessage("success", "MSDS 항목이 수정되었습니다.")
     } catch (error) {
       console.error("저장 오류:", error)
       showMessage("error", "저장 중 오류가 발생했습니다.")
@@ -317,13 +307,14 @@ export default function AdminDashboard() {
       id: symbol.id,
       name: symbol.name,
       description: symbol.description || "",
-      category: symbol.category || "physical",
+      category: symbol.category || "physical", // This state is now unused in the updates, will be removed conceptually.
       imageUrl: symbol.imageUrl || "",
     })
     setIsSymbolDialogOpen(true)
   }
 
   const handleAddSymbol = () => {
+    // Remove this function as it's not used in the new structure
     setEditingSymbol(null)
     setSymbolFormData({
       id: "",
@@ -352,11 +343,11 @@ export default function AdminDashboard() {
         showMessage("success", "경고 표지가 저장되었습니다.")
       } else {
         const error = await response.json()
-        alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
+        showMessage("error", `저장 실패: ${error.error || "알 수 없는 오류"}`)
       }
     } catch (error) {
       console.error("Failed to save warning symbol:", error)
-      alert("저장 중 오류가 발생했습니다.")
+      showMessage("error", "저장 중 오류가 발생했습니다.")
     }
   }
 
@@ -379,13 +370,14 @@ export default function AdminDashboard() {
       id: equipment.id,
       name: equipment.name,
       description: equipment.description || "",
-      category: equipment.category || "respiratory",
+      category: equipment.category || "respiratory", // This state is now unused in the updates, will be removed conceptually.
       imageUrl: equipment.imageUrl || "",
     })
     setIsEquipmentDialogOpen(true)
   }
 
   const handleAddEquipment = () => {
+    // Remove this function as it's not used in the new structure
     setEditingEquipment(null)
     setEquipmentFormData({
       id: "",
@@ -414,11 +406,11 @@ export default function AdminDashboard() {
         showMessage("success", "보호 장구가 저장되었습니다.")
       } else {
         const error = await response.json()
-        alert(`저장 실패: ${error.error || "알 수 없는 오류"}`)
+        showMessage("error", `저장 실패: ${error.error || "알 수 없는 오류"}`)
       }
     } catch (error) {
       console.error("Failed to save equipment:", error)
-      alert("저장 중 오류가 발생했습니다.")
+      showMessage("error", "저장 중 오류가 발생했습니다.")
     }
   }
 
@@ -447,7 +439,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                <QrCode className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                 새로고침
               </Button>
               <Link href="/">
@@ -480,190 +472,101 @@ export default function AdminDashboard() {
             <TabsTrigger value="upload">엑셀 업로드</TabsTrigger>
           </TabsList>
 
-          {/* MSDS Tab */}
           <TabsContent value="msds" className="space-y-6">
-            {/* Search and Add */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-80">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="MSDS 검색..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Badge variant="secondary">총 {filteredItems.length}개</Badge>
-              </div>
-              <Button onClick={handleAdd}>
-                <Plus className="w-4 h-4 mr-2" />새 MSDS 추가
+            {/* Search and Add section removed and replaced with new structure */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">MSDS 항목 관리 ({msdsItems.length}개)</h2>
+              {/* Changed 'New MSDS Add' button to 'Add New Item' */}
+              <Button className="bg-black text-white hover:bg-gray-800">
+                <Plus className="w-4 h-4 mr-2" />새 항목 추가
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">페이지당:</span>
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(v) => {
-                  setItemsPerPage(Number(v))
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground ml-4">
-                {startIndex + 1}-{Math.min(endIndex, filteredItems.length)} / {filteredItems.length}
-              </span>
-            </div>
-
-            {/* Add/Edit Form */}
-            {(showAddForm || editingItem) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{editingItem ? "MSDS 수정" : "새 MSDS 추가"}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>MSDS명 *</Label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="물질명을 입력하세요"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>PDF 파일명</Label>
-                      <Input
-                        value={formData.pdfFileName}
-                        onChange={(e) => setFormData({ ...formData, pdfFileName: e.target.value })}
-                        placeholder="PDF 파일명"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Warning Symbols */}
-                  <div className="space-y-2">
-                    <Label>경고 표지</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {warningSymbols.map((symbol) => (
-                        <div key={symbol.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`symbol-${symbol.id}`}
-                            checked={formData.warningSymbols.includes(symbol.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setFormData({ ...formData, warningSymbols: [...formData.warningSymbols, symbol.id] })
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  warningSymbols: formData.warningSymbols.filter((id) => id !== symbol.id),
-                                })
-                              }
-                            }}
-                          />
-                          <label htmlFor={`symbol-${symbol.id}`} className="text-sm cursor-pointer">
-                            {symbol.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Protective Equipment */}
-                  <div className="space-y-2">
-                    <Label>보호 장구</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {protectiveEquipment.map((equipment) => (
-                        <div key={equipment.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`equipment-${equipment.id}`}
-                            checked={formData.hazards.includes(equipment.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setFormData({ ...formData, hazards: [...formData.hazards, equipment.id] })
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  hazards: formData.hazards.filter((id) => id !== equipment.id),
-                                })
-                              }
-                            }}
-                          />
-                          <label htmlFor={`equipment-${equipment.id}`} className="text-sm cursor-pointer">
-                            {equipment.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={handleSave} disabled={submitting}>
-                      {submitting ? "저장 중..." : "저장"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowAddForm(false)
-                        setEditingItem(null)
-                        setFormData(initialFormData)
-                      }}
-                    >
-                      취소
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* MSDS List */}
             {loading ? (
-              <div className="text-center py-8">로딩 중...</div>
+              // Changed loading message
+              <div className="text-center py-12">데이터를 불러오는 중...</div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-4">
                 {currentItems.map((item) => (
-                  <Card key={item.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">{item.pdfFileName}</p>
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {item.warningSymbols?.map((symbolId) => {
-                              const symbol = warningSymbols.find((s) => s.id === symbolId)
-                              return symbol ? (
-                                <Badge key={symbolId} variant="outline" className="text-xs">
-                                  {symbol.name}
-                                </Badge>
-                              ) : null
-                            })}
+                  <Card key={item.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-3">
+                          {/* 제목 및 용도 */}
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold">{item.name}</h3>
+                            {/* Removed unused 'usage' logic, replaced with a placeholder or direct display if available */}
+                            <Badge className="bg-blue-500 text-white">{item.usage || "순수시약"}</Badge>
                           </div>
+
+                          {/* PDF 정보 */}
+                          {item.pdfFileName && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium">PDF:</span>
+                              <span className="text-gray-600">{item.pdfFileName}</span>
+                            </div>
+                          )}
+
+                          {/* 경고표지 및 보호장구 개수 */}
+                          <div className="flex items-center gap-4 text-sm">
+                            {/* Added display for warningSymbolsData and protectiveEquipmentData counts */}
+                            <Badge variant="outline">경고표지: {item.warningSymbolsData?.length || 0}개</Badge>
+                            <Badge variant="outline">보호장구: {item.protectiveEquipmentData?.length || 0}개</Badge>
+                          </div>
+
+                          {/* 장소 */}
+                          {item.reception && item.reception.length > 0 && (
+                            <div className="text-sm">
+                              <span className="font-medium text-gray-700">장소:</span>{" "}
+                              <span className="text-gray-600">{item.reception.join(", ")}</span>
+                            </div>
+                          )}
+
+                          {/* 관련법규 */}
+                          {item.laws && item.laws.length > 0 && (
+                            <div className="text-sm">
+                              <span className="font-medium text-gray-700">관련법규:</span>{" "}
+                              <span className="text-gray-600">{item.laws.join(", ")}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleShowQR(item)} title="QR코드">
-                            <QrCode className="w-4 h-4" />
+
+                        {/* 액션 버튼들 */}
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button variant="outline" size="sm" onClick={() => handleShowQR(item)}>
+                            <QrCode className="w-4 h-4 mr-1" />
+                            QR코드
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)} title="수정">
-                            <Edit className="w-4 h-4" />
-                          </Button>
+
+                          {/* PDF 업로드 버튼 */}
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(item.id)}
-                            title="삭제"
-                            className="text-destructive hover:text-destructive"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingPdf === item.id}
+                            onClick={() => {
+                              const input = document.createElement("input")
+                              input.type = "file"
+                              input.accept = "application/pdf"
+                              input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0]
+                                if (file) handlePdfUpload(item, file)
+                              }
+                              input.click()
+                            }}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Upload className="w-4 h-4 mr-1" />
+                            {uploadingPdf === item.id ? "업로드 중..." : "PDF 업로드"}
+                          </Button>
+
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
+                            <Edit className="w-4 h-4 mr-1" />
+                            수정
+                          </Button>
+
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            삭제
                           </Button>
                         </div>
                       </div>
@@ -672,307 +575,390 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
-
+            {/* Pagination UI */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                {getPageNumbers().map((page) => (
+              <div className="flex items-center justify-between mt-6 pt-6 border-t">
+                <div className="text-sm text-muted-foreground">
+                  {startIndex + 1}-{Math.min(endIndex, msdsItems.length)} / {msdsItems.length}개 항목
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
                   >
-                    {page}
+                    <ChevronLeft className="h-4 w-4" />
+                    이전
                   </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    다음
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </TabsContent>
 
+          {/* 경고 표지 탭 */}
           <TabsContent value="symbols" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>경고 표지 목록</CardTitle>
-                <Button onClick={handleAddSymbol}>
-                  <Plus className="w-4 h-4 mr-2" />새 경고 표지 추가
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {warningSymbols.map((symbol) => (
-                    <div
-                      key={symbol.id}
-                      className="border rounded-lg p-4 text-center hover:shadow-md transition-shadow group relative"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-2 bg-amber-50 border-2 border-amber-400 rounded-lg flex items-center justify-center overflow-hidden">
-                        {symbol.imageUrl || symbol.image_url ? (
-                          <img
-                            src={`${symbol.imageUrl || symbol.image_url}?t=${Date.now()}`}
-                            alt={symbol.name}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none"
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                              if (fallback) fallback.style.display = "flex"
-                            }}
-                          />
-                        ) : null}
-                        {/* 기본 아이콘 (이미지 없거나 로드 실패 시) */}
-                        <span
-                          style={{ display: symbol.imageUrl || symbol.image_url ? "none" : "flex" }}
-                          className="items-center justify-center"
-                        >
-                          {WARNING_SYMBOL_ICONS[symbol.id] || <AlertTriangle className="w-8 h-8 text-amber-600" />}
-                        </span>
-                      </div>
-                      <h4 className="font-medium">{symbol.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-1">{symbol.description}</p>
-                      {/* 편집/삭제 버튼 */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleEditSymbol(symbol)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteSymbol(symbol.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">경고 표지 관리 ({warningSymbols.length}개)</h2>
+              {/* Removed Add new symbol button */}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {warningSymbols.map((symbol) => (
+                <Card key={symbol.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      {symbol.imageUrl && (
+                        <img
+                          src={symbol.imageUrl || "/placeholder.svg"}
+                          alt={symbol.name}
+                          className="w-16 h-16 object-contain"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{symbol.name}</h3>
+                        <p className="text-sm text-muted-foreground">{symbol.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditSymbol(symbol)}>
+                            수정
+                          </Button>
+                          {/* Removed Delete button */}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
+          {/* 보호 장구 탭 */}
           <TabsContent value="equipment" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>보호 장구 목록</CardTitle>
-                <Button onClick={handleAddEquipment}>
-                  <Plus className="w-4 h-4 mr-2" />새 보호 장구 추가
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {protectiveEquipment.map((equipment) => (
-                    <div
-                      key={equipment.id}
-                      className="border rounded-lg p-4 text-center hover:shadow-md transition-shadow group relative"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-2 bg-blue-50 border-2 border-blue-400 rounded-lg flex items-center justify-center overflow-hidden">
-                        {equipment.imageUrl || equipment.image_url ? (
-                          <img
-                            src={`${equipment.imageUrl || equipment.image_url}?t=${Date.now()}`}
-                            alt={equipment.name}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none"
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                              if (fallback) fallback.style.display = "flex"
-                            }}
-                          />
-                        ) : null}
-                        {/* 기본 아이콘 (이미지 없거나 로드 실패 시) */}
-                        <span
-                          style={{ display: equipment.imageUrl || equipment.image_url ? "none" : "flex" }}
-                          className="items-center justify-center"
-                        >
-                          {PROTECTIVE_EQUIPMENT_ICONS[equipment.id] || <Shield className="w-8 h-8 text-blue-600" />}
-                        </span>
-                      </div>
-                      <h4 className="font-medium">{equipment.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-1">{equipment.description}</p>
-                      {/* 편집/삭제 버튼 */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleEditEquipment(equipment)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteEquipment(equipment.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">보호 장구 관리 ({protectiveEquipment.length}개)</h2>
+              {/* Removed Add new equipment button */}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {protectiveEquipment.map((equipment) => (
+                <Card key={equipment.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      {equipment.imageUrl && (
+                        <img
+                          src={equipment.imageUrl || "/placeholder.svg"}
+                          alt={equipment.name}
+                          className="w-16 h-16 object-contain"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{equipment.name}</h3>
+                        <p className="text-sm text-muted-foreground">{equipment.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditEquipment(equipment)}>
+                            수정
+                          </Button>
+                          {/* Removed Delete button */}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
-          {/* Excel Upload Tab */}
-          <TabsContent value="upload" className="space-y-6">
-            <ExcelUpload onUploadSuccess={loadMsdsItems} />
+          {/* 엑셀 업로드 탭 */}
+          <TabsContent value="upload">
+            {/* Renamed prop onUploadSuccess to onUploadComplete */}
+            <ExcelUpload onUploadComplete={loadMsdsItems} />
           </TabsContent>
         </Tabs>
       </main>
 
-      {/* QR Code Modal */}
-      <QRPrintModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} msdsItem={selectedQRItem} />
+      {/* QR 모달 */}
+      {showQRModal && selectedQRItem && <QRPrintModal item={selectedQRItem} onClose={() => setShowQRModal(false)} />}
 
-      {/* Symbol Form Dialog */}
-      <Dialog open={isSymbolDialogOpen} onOpenChange={setIsSymbolDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* 수정 다이얼로그 */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingSymbol ? "경고 표지 수정" : "새 경고 표지 추가"}</DialogTitle>
+            <DialogTitle>MSDS 항목 수정</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <div className="space-y-4">
+              <div>
+                <Label>제품명</Label>
+                <Input
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>PDF 파일</Label>
+                <div className="space-y-2 mt-2">
+                  {editingItem.pdfFileName && (
+                    <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                      <FileText className="h-4 w-4" />
+                      <span className="text-sm flex-1">{editingItem.pdfFileName}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingItem({ ...editingItem, pdfFileName: "", pdfUrl: "" })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setEditPdfFile(e.target.files?.[0] || null)}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleUploadEditPdf} disabled={!editPdfFile || uploadingPdf} size="sm">
+                      {uploadingPdf ? "업로드 중..." : "업로드"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 경고표지 선택 */}
+              <div>
+                <Label>경고 표지</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
+                  {warningSymbols.map((symbol) => (
+                    <div key={symbol.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-symbol-${symbol.id}`}
+                        checked={editingItem.warningSymbols?.includes(symbol.id)}
+                        onCheckedChange={(checked) => {
+                          const current = editingItem.warningSymbols || []
+                          if (checked) {
+                            setEditingItem({ ...editingItem, warningSymbols: [...current, symbol.id] })
+                          } else {
+                            setEditingItem({
+                              ...editingItem,
+                              warningSymbols: current.filter((id) => id !== symbol.id),
+                            })
+                          }
+                        }}
+                      />
+                      <label htmlFor={`edit-symbol-${symbol.id}`} className="text-sm cursor-pointer">
+                        {symbol.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 보호장구 선택 */}
+              <div>
+                <Label>보호 장구</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
+                  {protectiveEquipment.map((equipment) => (
+                    <div key={equipment.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-equipment-${equipment.id}`}
+                        checked={editingItem.hazards?.includes(equipment.id)}
+                        onCheckedChange={(checked) => {
+                          const current = editingItem.hazards || []
+                          if (checked) {
+                            setEditingItem({ ...editingItem, hazards: [...current, equipment.id] })
+                          } else {
+                            setEditingItem({
+                              ...editingItem,
+                              hazards: current.filter((id) => id !== equipment.id),
+                            })
+                          }
+                        }}
+                      />
+                      <label htmlFor={`edit-equipment-${equipment.id}`} className="text-sm cursor-pointer">
+                        {equipment.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>사용 장소</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
+                  {receptionOptions.map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-reception-${option}`}
+                        checked={editingItem.reception?.includes(option)}
+                        onCheckedChange={(checked) => {
+                          const current = editingItem.reception || []
+                          if (checked) {
+                            setEditingItem({ ...editingItem, reception: [...current, option] })
+                          } else {
+                            setEditingItem({
+                              ...editingItem,
+                              reception: current.filter((r) => r !== option),
+                            })
+                          }
+                        }}
+                      />
+                      <label htmlFor={`edit-reception-${option}`} className="text-sm cursor-pointer">
+                        {option}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>관련 법규</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded">
+                  {lawsOptions.map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-laws-${option}`}
+                        checked={editingItem.laws?.includes(option)}
+                        onCheckedChange={(checked) => {
+                          const current = editingItem.laws || []
+                          if (checked) {
+                            setEditingItem({ ...editingItem, laws: [...current, option] })
+                          } else {
+                            setEditingItem({
+                              ...editingItem,
+                              laws: current.filter((l) => l !== option),
+                            })
+                          }
+                        }}
+                      />
+                      <label htmlFor={`edit-laws-${option}`} className="text-sm cursor-pointer">
+                        {option}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={submitting}>
+                  {submitting ? "저장 중..." : "저장"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 경고 표지 수정 다이얼로그 */}
+      <Dialog open={isSymbolDialogOpen} onOpenChange={setIsSymbolDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>경고 표지 수정</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>ID</Label>
-              <Input
-                value={symbolFormData.id}
-                onChange={(e) => setSymbolFormData({ ...symbolFormData, id: e.target.value })}
-                placeholder="고유 ID (예: 1, 2, 3...)"
-                disabled={!!editingSymbol}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>이름 *</Label>
+            <div>
+              <Label>이름</Label>
               <Input
                 value={symbolFormData.name}
                 onChange={(e) => setSymbolFormData({ ...symbolFormData, name: e.target.value })}
-                placeholder="경고 표지 이름"
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label>설명</Label>
               <Input
                 value={symbolFormData.description}
                 onChange={(e) => setSymbolFormData({ ...symbolFormData, description: e.target.value })}
-                placeholder="설명"
               />
             </div>
-            <div className="space-y-2">
-              <Label>카테고리</Label>
-              <Select
-                value={symbolFormData.category}
-                onValueChange={(v) => setSymbolFormData({ ...symbolFormData, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="physical">물리적 위험</SelectItem>
-                  <SelectItem value="health">건강 위험</SelectItem>
-                  <SelectItem value="environment">환경 위험</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
+            <div>
               <Label>이미지</Label>
               <ImageUpload
                 currentImageUrl={symbolFormData.imageUrl}
-                onImageChange={(url) => setSymbolFormData({ ...symbolFormData, imageUrl: url })}
-                itemType="ghs"
+                // Renamed prop onImageChange to onImageUploaded
+                onImageUploaded={(url) => setSymbolFormData({ ...symbolFormData, imageUrl: url })}
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSaveSymbol}>저장</Button>
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsSymbolDialogOpen(false)}>
                 취소
               </Button>
+              <Button onClick={handleSaveSymbol}>저장</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Equipment Form Dialog */}
+      {/* 보호 장구 수정 다이얼로그 */}
       <Dialog open={isEquipmentDialogOpen} onOpenChange={setIsEquipmentDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingEquipment ? "보호 장구 수정" : "새 보호 장구 추가"}</DialogTitle>
+            <DialogTitle>보호 장구 수정</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>ID</Label>
-              <Input
-                value={equipmentFormData.id}
-                onChange={(e) => setEquipmentFormData({ ...equipmentFormData, id: e.target.value })}
-                placeholder="고유 ID (예: 1, 2, 3...)"
-                disabled={!!editingEquipment}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>이름 *</Label>
+            <div>
+              <Label>이름</Label>
               <Input
                 value={equipmentFormData.name}
                 onChange={(e) => setEquipmentFormData({ ...equipmentFormData, name: e.target.value })}
-                placeholder="보호 장구 이름"
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label>설명</Label>
               <Input
                 value={equipmentFormData.description}
                 onChange={(e) => setEquipmentFormData({ ...equipmentFormData, description: e.target.value })}
-                placeholder="설명"
               />
             </div>
-            <div className="space-y-2">
-              <Label>카테고리</Label>
-              <Select
-                value={equipmentFormData.category}
-                onValueChange={(v) => setEquipmentFormData({ ...equipmentFormData, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="eye">눈 보호</SelectItem>
-                  <SelectItem value="face">얼굴 보호</SelectItem>
-                  <SelectItem value="respiratory">호흡 보호</SelectItem>
-                  <SelectItem value="hand">손 보호</SelectItem>
-                  <SelectItem value="body">신체 보호</SelectItem>
-                  <SelectItem value="foot">발 보호</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
+            <div>
               <Label>이미지</Label>
               <ImageUpload
                 currentImageUrl={equipmentFormData.imageUrl}
-                onImageChange={(url) => setEquipmentFormData({ ...equipmentFormData, imageUrl: url })}
-                itemType="prgear"
+                // Renamed prop onImageChange to onImageUploaded
+                onImageUploaded={(url) => setEquipmentFormData({ ...equipmentFormData, imageUrl: url })}
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSaveEquipment}>저장</Button>
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEquipmentDialogOpen(false)}>
                 취소
               </Button>
+              <Button onClick={handleSaveEquipment}>저장</Button>
             </div>
           </div>
         </DialogContent>
