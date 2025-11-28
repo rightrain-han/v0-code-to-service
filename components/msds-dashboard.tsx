@@ -290,9 +290,9 @@ function MsdsDashboard() {
               >
                 <div
                   className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
-                    item.pdfFileName ? "bg-green-500" : "bg-gray-300"
+                    item.pdfUrl ? "bg-green-500" : "bg-gray-300"
                   }`}
-                  title={item.pdfFileName ? "PDF 파일 있음" : "PDF 파일 없음"}
+                  title={item.pdfUrl ? "PDF 파일 있음" : "PDF 파일 없음"}
                 />
 
                 <CardContent className="p-4">
@@ -302,7 +302,7 @@ function MsdsDashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <Badge className={`text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
 
-                    {item.pdfFileName && (
+                    {item.pdfUrl && (
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
@@ -355,41 +355,6 @@ function MsdsDashboard() {
                             </div>
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/symbol:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                               {symbol.name}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-xs text-gray-400">-</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
-                      <Shield className="w-3 h-3 text-green-500" />
-                      보호 장구
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
-                        item.protectiveEquipmentData.map((equipment) => (
-                          <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
-                            <div className="w-8 h-8 flex items-center justify-center">
-                              {equipment.imageUrl || equipment.image_url ? (
-                                <Image
-                                  src={equipment.imageUrl || equipment.image_url || ""}
-                                  alt={equipment.name}
-                                  width={28}
-                                  height={28}
-                                  className="object-contain"
-                                />
-                              ) : (
-                                <span className="text-xs font-medium text-gray-700">
-                                  {equipment.name?.substring(0, 2) || "!"}
-                                </span>
-                              )}
-                            </div>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/equipment:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                              {equipment.name}
                             </div>
                           </div>
                         ))
