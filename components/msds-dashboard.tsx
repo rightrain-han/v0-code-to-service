@@ -365,6 +365,41 @@ function MsdsDashboard() {
                   </div>
 
                   <div className="mb-3">
+                    <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+                      <Shield className="w-3 h-3 text-green-500" />
+                      보호 장구
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 ? (
+                        item.protectiveEquipmentData.map((equipment) => (
+                          <div key={equipment.id} className="relative group/equipment" title={equipment.name}>
+                            {equipment.imageUrl || equipment.image_url ? (
+                              <Image
+                                src={equipment.imageUrl || equipment.image_url || ""}
+                                alt={equipment.name}
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded">
+                                <span className="text-xs font-bold text-green-600">
+                                  {equipment.name?.substring(0, 2) || "?"}
+                                </span>
+                              </div>
+                            )}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/equipment:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                              {equipment.name}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1.5">사용 장소</p>
                     <div className="flex flex-wrap gap-1">
                       {item.reception && item.reception.length > 0 ? (
