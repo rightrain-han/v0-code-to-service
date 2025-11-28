@@ -146,7 +146,7 @@ function MsdsDashboard() {
     if (item.warningLabelPdfUrl) {
       const link = document.createElement("a")
       link.href = item.warningLabelPdfUrl
-      link.download = item.warningLabelPdfName || `${item.name}_경고표지.pdf`
+      link.download = item.warningLabelPdfName || `${item.name}_그림문자.pdf`
       link.click()
     }
   }
@@ -342,7 +342,7 @@ function MsdsDashboard() {
                         onClick={(e) => handleWarningLabelDownload(item, e)}
                       >
                         <Download className="w-3 h-3 mr-1" />
-                        경고표지 다운로드
+                        그림문자 다운로드
                       </Button>
                     )}
                     {item.managementGuidelinesPdfUrl && (
