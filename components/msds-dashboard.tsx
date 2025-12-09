@@ -54,34 +54,11 @@ function MsdsDashboard() {
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
-      console.log("[v0] Starting fetch...")
       const [msdsRes, symbolsRes, equipmentRes] = await Promise.all([
         fetch("/api/msds"),
         fetch("/api/warning-symbols"),
         fetch("/api/protective-equipment"),
       ])
-
-      console.log("[v0] MSDS response status:", msdsRes.status)
-      console.log("[v0] Symbols response status:", symbolsRes.status)
-      console.log("[v0] Equipment response status:", equipmentRes.status)
-
-      if (!msdsRes.ok) {
-        const errorText = await msdsRes.text()
-        console.error("[v0] MSDS API error:", errorText)
-        throw new Error(`MSDS API error: ${msdsRes.status} - ${errorText}`)
-      }
-
-      if (!symbolsRes.ok) {
-        const errorText = await symbolsRes.text()
-        console.error("[v0] Symbols API error:", errorText)
-        throw new Error(`Symbols API error: ${symbolsRes.status}`)
-      }
-
-      if (!equipmentRes.ok) {
-        const errorText = await equipmentRes.text()
-        console.error("[v0] Equipment API error:", errorText)
-        throw new Error(`Equipment API error: ${equipmentRes.status}`)
-      }
 
       const msdsData = await msdsRes.json()
       const symbolsData = await symbolsRes.json()
@@ -109,7 +86,7 @@ function MsdsDashboard() {
         console.log("[v0] First item protectiveEquipmentData:", msdsData.items[0]?.protectiveEquipmentData)
       }
     } catch (error) {
-      console.error("[v0] Failed to fetch data:", error)
+      console.error("Failed to fetch data:", error)
       setDbStatus("error")
     } finally {
       setLoading(false)
