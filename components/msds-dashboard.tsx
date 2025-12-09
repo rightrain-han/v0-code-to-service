@@ -60,9 +60,61 @@ function MsdsDashboard() {
         fetch("/api/protective-equipment"),
       ])
 
-      const msdsData = await msdsRes.json()
-      const symbolsData = await symbolsRes.json()
-      const equipmentData = await equipmentRes.json()
+      let msdsData
+      if (!msdsRes.ok) {
+        try {
+          msdsData = await msdsRes.json()
+          // API가 JSON을 반환하고 usingSampleData 플래그가 있으면 사용
+          if (msdsData.usingSampleData) {
+            console.warn("[v0] Using sample data due to API error:", msdsData.error)
+            setDbStatus("error")
+          } else {
+            const errorDetails = `${msdsData.error || "Unknown error"} (Step: ${msdsData.step || "unknown"})`
+            console.error("[v0] MSDS API error details:", msdsData)
+            console.error("[v0] MSDS API error:", errorDetails)
+            // 에러 상태로 설정하지만 계속 진행
+            setDbStatus("error")
+          }
+        } catch (jsonError) {
+          // JSON 파싱 실패 - 완전히 실패한 경우이지만 계속 진행
+          console.error("[v0] MSDS API returned non-JSON error, status:", msdsRes.status)
+          console.warn("[v0] Cannot load MSDS data. The database may not be properly configured.")
+          setDbStatus("error")
+          msdsData = { items: [] }
+        }
+      }
+
+      let symbolsData
+      if (!symbolsRes.ok) {
+        try {
+          symbolsData = await symbolsRes.json()
+          console.error("[v0] Warning Symbols API error:", symbolsData.error)
+        } catch (jsonError) {
+          console.error("[v0] Warning Symbols API returned non-JSON error")
+          symbolsData = { symbols: [] }
+        }
+      }
+
+      let equipmentData
+      if (!equipmentRes.ok) {
+        try {
+          equipmentData = await equipmentRes.json()
+          console.error("[v0] Protective Equipment API error:", equipmentData.error)
+        } catch (jsonError) {
+          console.error("[v0] Protective Equipment API returned non-JSON error")
+          equipmentData = { equipment: [] }
+        }
+      }
+
+      if (!msdsData) {
+        msdsData = await msdsRes.json()
+      }
+      if (!symbolsData) {
+        symbolsData = await symbolsRes.json()
+      }
+      if (!equipmentData) {
+        equipmentData = await equipmentRes.json()
+      }
 
       console.log("[v0] msdsData:", msdsData)
       console.log("[v0] symbolsData:", symbolsData)
@@ -70,7 +122,7 @@ function MsdsDashboard() {
 
       if (msdsData.dbRestoring || symbolsData.dbRestoring || equipmentData.dbRestoring) {
         setDbStatus("restoring")
-      } else {
+      } else if (dbStatus !== "error") {
         setDbStatus("connected")
       }
 
@@ -82,16 +134,23 @@ function MsdsDashboard() {
 
       if (msdsData.items) {
         setData(msdsData.items)
-        console.log("[v0] First item warningSymbolsData:", msdsData.items[0]?.warningSymbolsData)
-        console.log("[v0] First item protectiveEquipmentData:", msdsData.items[0]?.protectiveEquipmentData)
+        console.log("[v0] Loaded", msdsData.items.length, "MSDS items")
+        if (msdsData.items.length > 0) {
+          console.log("[v0] First item warningSymbolsData:", msdsData.items[0]?.warningSymbolsData)
+          console.log("[v0] First item protectiveEquipmentData:", msdsData.items[0]?.protectiveEquipmentData)
+        }
       }
     } catch (error) {
-      console.error("Failed to fetch data:", error)
+      console.error("[v0] Failed to fetch data:", error)
+      if (error instanceof Error) {
+        console.error("[v0] Error message:", error.message)
+        console.error("[v0] Error stack:", error.stack)
+      }
       setDbStatus("error")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dbStatus])
 
   useEffect(() => {
     fetchData()
@@ -275,6 +334,17 @@ function MsdsDashboard() {
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
             <span className="text-amber-700 text-sm">데이터베이스 복원 중입니다. 잠시 후 새로고침해주세요.</span>
+          </div>
+        </div>
+      )}
+
+      {dbStatus === "error" && (
+        <div className="container mx-auto px-4 mb-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <span className="text-red-700 text-sm">
+              데이터베이스 연결에 문제가 있습니다. 관리자에게 문의하거나 잠시 후 다시 시도해주세요.
+            </span>
           </div>
         </div>
       )}

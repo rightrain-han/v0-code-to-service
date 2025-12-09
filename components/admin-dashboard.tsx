@@ -1,10 +1,13 @@
 "use client"
 
-import Link from "next/link"
+import { useEffect } from "react"
+
+import { useState } from "react"
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -71,18 +74,18 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [editingItem, setEditingItem] = useState<MsdsItem | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false) // This state is now unused in the updates, will be removed conceptually.
-  const [formData, setFormData] = useState<FormData>(initialFormData) // This state is now unused in the updates, will be removed conceptually.
+  const [showNewDialog, setShowNewDialog] = useState(false)
+  const [formData, setFormData] = useState<FormData>(initialFormData)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [searchTerm, setSearchTerm] = useState("") // This state is now unused in the updates, will be removed conceptually.
+  const [searchTerm, setSearchTerm] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // QR코드 관리 상태
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [selectedQRItem, setSelectedQRItem] = useState<MsdsItem | null>(null)
+  const [showQrModal, setShowQrModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<MsdsItem | null>(null)
 
   // 관리 데이터 상태
   const [warningSymbols, setWarningSymbols] = useState<WarningSymbol[]>([])
@@ -94,7 +97,7 @@ export default function AdminDashboard() {
     id: "",
     name: "",
     description: "",
-    category: "physical", // This state is now unused in the updates, will be removed conceptually.
+    category: "physical",
     imageUrl: "",
   })
 
@@ -104,7 +107,7 @@ export default function AdminDashboard() {
     id: "",
     name: "",
     description: "",
-    category: "respiratory", // This state is now unused in the updates, will be removed conceptually.
+    category: "respiratory",
     imageUrl: "",
   })
 
@@ -182,14 +185,15 @@ export default function AdminDashboard() {
   const totalPages = Math.ceil(msdsItems.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentItems = msdsItems.slice(startIndex, endIndex)
+  const paginatedItems = msdsItems.slice(startIndex, endIndex)
 
   const handlePdfUpload = async (item: MsdsItem, file: File) => {
     try {
-      setUploadingPdf(true)
+      setUploadingPdf(item.id)
       const formData = new FormData()
       formData.append("file", file)
       formData.append("msdsId", item.id.toString())
+      formData.append("msdsName", item.name)
 
       const response = await fetch("/api/upload/pdf", {
         method: "POST",
@@ -197,14 +201,15 @@ export default function AdminDashboard() {
       })
 
       if (!response.ok) {
-        throw new Error("PDF 업로드 실패")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "PDF 업로드 실패")
       }
 
       await loadMsdsItems()
       showMessage("success", "PDF가 업로드되었습니다.")
     } catch (error) {
-      console.error("PDF upload error:", error)
-      showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
+      console.error("[v0] PDF upload error:", error)
+      showMessage("error", error instanceof Error ? error.message : "PDF 업로드 중 오류가 발생했습니다.")
     } finally {
       setUploadingPdf(false)
     }
@@ -220,7 +225,7 @@ export default function AdminDashboard() {
     if (!editPdfFile || !editingItem) return
 
     try {
-      setUploadingPdf(true)
+      setUploadingPdf(editingItem.id)
       const formData = new FormData()
       formData.append("file", editPdfFile)
       formData.append("msdsId", editingItem.id.toString())
@@ -231,7 +236,10 @@ export default function AdminDashboard() {
         body: formData,
       })
 
-      if (!response.ok) throw new Error("PDF 업로드 실패")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "PDF 업로드 실패")
+      }
 
       const data = await response.json()
       setEditingItem({
@@ -242,8 +250,8 @@ export default function AdminDashboard() {
       setEditPdfFile(null)
       showMessage("success", "PDF 파일이 업로드되었습니다.")
     } catch (error) {
-      console.error("PDF 업로드 오류:", error)
-      showMessage("error", "PDF 업로드 중 오류가 발생했습니다.")
+      console.error("[v0] PDF 업로드 오류:", error)
+      showMessage("error", error instanceof Error ? error.message : "PDF 업로드 중 오류가 발생했습니다.")
     } finally {
       setUploadingPdf(false)
     }
@@ -296,9 +304,9 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleShowQR = (item: MsdsItem) => {
-    setSelectedQRItem(item)
-    setShowQRModal(true)
+  const handleGenerateQR = (item: MsdsItem) => {
+    setSelectedItem(item)
+    setShowQrModal(true)
   }
 
   const handleEditSymbol = (symbol: WarningSymbol) => {
@@ -307,14 +315,13 @@ export default function AdminDashboard() {
       id: symbol.id,
       name: symbol.name,
       description: symbol.description || "",
-      category: symbol.category || "physical", // This state is now unused in the updates, will be removed conceptually.
+      category: symbol.category || "physical",
       imageUrl: symbol.imageUrl || "",
     })
     setIsSymbolDialogOpen(true)
   }
 
   const handleAddSymbol = () => {
-    // Remove this function as it's not used in the new structure
     setEditingSymbol(null)
     setSymbolFormData({
       id: "",
@@ -370,14 +377,13 @@ export default function AdminDashboard() {
       id: equipment.id,
       name: equipment.name,
       description: equipment.description || "",
-      category: equipment.category || "respiratory", // This state is now unused in the updates, will be removed conceptually.
+      category: equipment.category || "respiratory",
       imageUrl: equipment.imageUrl || "",
     })
     setIsEquipmentDialogOpen(true)
   }
 
   const handleAddEquipment = () => {
-    // Remove this function as it's not used in the new structure
     setEditingEquipment(null)
     setEquipmentFormData({
       id: "",
@@ -477,100 +483,122 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">MSDS 항목 관리 ({msdsItems.length}개)</h2>
               {/* Changed 'New MSDS Add' button to 'Add New Item' */}
-              <Button className="bg-black text-white hover:bg-gray-800">
-                <Plus className="w-4 h-4 mr-2" />새 항목 추가
-              </Button>
+              <div className="flex items-center gap-2">
+                <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10개씩 보기</SelectItem>
+                    <SelectItem value="20">20개씩 보기</SelectItem>
+                    <SelectItem value="50">50개씩 보기</SelectItem>
+                    <SelectItem value="100">100개씩 보기</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => setShowNewDialog(true)}>
+                  <Plus className="w-4 h-4 mr-1" />새 항목 추가
+                </Button>
+              </div>
             </div>
 
             {loading ? (
               // Changed loading message
               <div className="text-center py-12">데이터를 불러오는 중...</div>
             ) : (
-              <div className="space-y-4">
-                {currentItems.map((item) => (
-                  <Card key={item.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-3">
-                          {/* 제목 및 용도 */}
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold">{item.name}</h3>
-                            {/* Removed unused 'usage' logic, replaced with a placeholder or direct display if available */}
-                            <Badge className="bg-blue-500 text-white">{item.usage || "순수시약"}</Badge>
-                          </div>
-
-                          {/* PDF 정보 */}
-                          {item.pdfFileName && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <FileText className="w-4 h-4 text-gray-500" />
-                              <span className="font-medium">PDF:</span>
-                              <span className="text-gray-600">{item.pdfFileName}</span>
-                            </div>
+              <div className="space-y-3">
+                {paginatedItems.map((item) => (
+                  <Card key={item.id} className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* 왼쪽: 제목 및 정보 */}
+                      <div className="flex-1 space-y-2">
+                        {/* 제목 행 - 배지들을 제목 옆에 배치 */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-semibold">{item.name}</h3>
+                          {item.usage && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.usage}
+                            </Badge>
                           )}
-
-                          {/* 경고표지 및 보호장구 개수 */}
-                          <div className="flex items-center gap-4 text-sm">
-                            {/* Added display for warningSymbolsData and protectiveEquipmentData counts */}
-                            <Badge variant="outline">경고표지: {item.warningSymbolsData?.length || 0}개</Badge>
-                            <Badge variant="outline">보호장구: {item.protectiveEquipmentData?.length || 0}개</Badge>
-                          </div>
-
-                          {/* 장소 */}
-                          {item.reception && item.reception.length > 0 && (
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700">장소:</span>{" "}
-                              <span className="text-gray-600">{item.reception.join(", ")}</span>
-                            </div>
+                          {item.warningSymbolsData && item.warningSymbolsData.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              경고표지: {item.warningSymbolsData.length}개
+                            </Badge>
                           )}
-
-                          {/* 관련법규 */}
-                          {item.laws && item.laws.length > 0 && (
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700">관련법규:</span>{" "}
-                              <span className="text-gray-600">{item.laws.join(", ")}</span>
-                            </div>
+                          {item.protectiveEquipmentData && item.protectiveEquipmentData.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              보호장구: {item.protectiveEquipmentData.length}개
+                            </Badge>
                           )}
                         </div>
 
-                        {/* 액션 버튼들 */}
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button variant="outline" size="sm" onClick={() => handleShowQR(item)}>
-                            <QrCode className="w-4 h-4 mr-1" />
-                            QR코드
-                          </Button>
+                        {/* PDF 정보 */}
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">PDF:</span> {item.pdfFileName || "파일 없음"}
+                        </div>
 
-                          {/* PDF 업로드 버튼 */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={uploadingPdf === item.id}
-                            onClick={() => {
-                              const input = document.createElement("input")
-                              input.type = "file"
-                              input.accept = "application/pdf"
-                              input.onchange = (e) => {
-                                const file = (e.target as HTMLInputElement).files?.[0]
-                                if (file) handlePdfUpload(item, file)
-                              }
-                              input.click()
-                            }}
-                          >
-                            <Upload className="w-4 h-4 mr-1" />
-                            {uploadingPdf === item.id ? "업로드 중..." : "PDF 업로드"}
-                          </Button>
-
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                            <Edit className="w-4 h-4 mr-1" />
-                            수정
-                          </Button>
-
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            삭제
-                          </Button>
+                        {/* 장소 및 법규 */}
+                        <div className="flex gap-4 text-sm">
+                          {item.reception && item.reception.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">장소:</span> {item.reception.join(", ")}
+                            </div>
+                          )}
+                          {item.laws && item.laws.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">관련법:</span> {item.laws.join(", ")}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
+
+                      {/* 오른쪽: 버튼 그룹 */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* QR코드 버튼 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedItem(item)
+                            setShowQrModal(true)
+                          }}
+                        >
+                          <QrCode className="w-4 h-4 mr-1" />
+                          QR코드
+                        </Button>
+
+                        {/* PDF 업로드 버튼 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingPdf === item.id}
+                          onClick={() => {
+                            const input = document.createElement("input")
+                            input.type = "file"
+                            input.accept = "application/pdf"
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0]
+                              if (file) handlePdfUpload(item, file)
+                            }
+                            input.click()
+                          }}
+                        >
+                          <Upload className="w-4 h-4 mr-1" />
+                          {uploadingPdf === item.id ? "업로드 중..." : "PDF 업로드"}
+                        </Button>
+
+                        {/* 수정 버튼 */}
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
+                          <Edit className="w-4 h-4 mr-1" />
+                          수정
+                        </Button>
+
+                        {/* 삭제 버튼 */}
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -711,7 +739,7 @@ export default function AdminDashboard() {
       </main>
 
       {/* QR 모달 */}
-      {showQRModal && selectedQRItem && <QRPrintModal item={selectedQRItem} onClose={() => setShowQRModal(false)} />}
+      {showQrModal && selectedItem && <QRPrintModal item={selectedItem} onClose={() => setShowQrModal(false)} />}
 
       {/* 수정 다이얼로그 */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -911,7 +939,6 @@ export default function AdminDashboard() {
               <Label>이미지</Label>
               <ImageUpload
                 currentImageUrl={symbolFormData.imageUrl}
-                // Renamed prop onImageChange to onImageUploaded
                 onImageUploaded={(url) => setSymbolFormData({ ...symbolFormData, imageUrl: url })}
               />
             </div>
@@ -950,7 +977,6 @@ export default function AdminDashboard() {
               <Label>이미지</Label>
               <ImageUpload
                 currentImageUrl={equipmentFormData.imageUrl}
-                // Renamed prop onImageChange to onImageUploaded
                 onImageUploaded={(url) => setEquipmentFormData({ ...equipmentFormData, imageUrl: url })}
               />
             </div>

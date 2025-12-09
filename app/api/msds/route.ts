@@ -32,12 +32,26 @@ const SAMPLE_DATA = [
 ]
 
 export async function GET() {
-  try {
-    const supabase = createAdminClient()
+  console.log("[v0] ========== MSDS GET API START ==========")
 
-    if (!supabase) {
-      return NextResponse.json({ items: SAMPLE_DATA })
+  try {
+    console.log("[v0] Step 1: Creating Supabase client...")
+
+    let supabase
+    try {
+      supabase = createAdminClient()
+      console.log("[v0] Step 1: ✓ Supabase client created")
+    } catch (clientError: any) {
+      console.error("[v0] Step 1: ✗ Failed to create Supabase client:", clientError.message)
+
+      return NextResponse.json({
+        items: SAMPLE_DATA,
+        usingSampleData: true,
+        error: "Database connection failed. Showing sample data.",
+      })
     }
+
+    console.log("[v0] Step 2: Querying MSDS items...")
 
     const { data: msdsItems, error: msdsError } = await supabase
       .from("msds_items")
@@ -50,134 +64,158 @@ export async function GET() {
       .order("id", { ascending: true })
 
     if (msdsError) {
-      console.error("[v0] MSDS query error:", msdsError)
-      // Rate limit이나 다른 Supabase 에러 발생 시 샘플 데이터 대신 빈 배열 반환
-      return NextResponse.json({ items: [], error: msdsError.message }, { status: 500 })
+      console.error("[v0] Step 2: ✗ MSDS query error:", JSON.stringify(msdsError, null, 2))
+
+      return NextResponse.json({
+        items: SAMPLE_DATA,
+        usingSampleData: true,
+        error: `Database query failed: ${msdsError.message}`,
+      })
     }
 
     if (!msdsItems || msdsItems.length === 0) {
-      console.log("[v0] No MSDS items found")
+      console.log("[v0] Step 2: ✓ Query successful but no items found")
       return NextResponse.json({ items: [] })
     }
 
-    console.log(
-      "[v0] First item raw data:",
-      JSON.stringify({
-        id: msdsItems[0].id,
-        name: msdsItems[0].name,
-        msds_warning_symbols: msdsItems[0].msds_warning_symbols,
-        msds_protective_equipment: msdsItems[0].msds_protective_equipment,
-      }),
-    )
+    console.log(`[v0] Step 2: ✓ Found ${msdsItems.length} MSDS items`)
+    console.log("[v0] Step 3: Fetching reference data...")
 
-    const [warningSymbolsResponse, protectiveEquipmentResponse, locationOptionsResponse] = await Promise.all([
-      supabase.from("warning_symbols").select("*"),
-      supabase.from("protective_equipment").select("*"),
-      supabase.from("config_options").select("*").eq("type", "location"),
-    ])
-
-    const warningSymbols = warningSymbolsResponse.data || []
-    const protectiveEquipment = protectiveEquipmentResponse.data || []
-
-    console.log(
-      "[v0] warning_symbols from DB:",
-      JSON.stringify(warningSymbols.map((s) => ({ id: s.id, name: s.name }))),
-    )
-
+    let warningSymbols: any[] = []
+    let protectiveEquipment: any[] = []
     const locationMap: Record<string, string> = {}
-    ;(locationOptionsResponse.data || []).forEach((opt: { value: string; label: string }) => {
-      locationMap[opt.value] = opt.label
-    })
 
-    // 데이터 변환
-    const enrichedItems = msdsItems.map((item) => {
-      const warningSymbolIds =
-        item.msds_warning_symbols?.map((ws: { warning_symbol_id: string }) => ws.warning_symbol_id) || []
-      const protectiveEquipmentIds =
-        item.msds_protective_equipment?.map((pe: { protective_equipment_id: string }) => pe.protective_equipment_id) ||
-        []
+    try {
+      const [warningSymbolsResponse, protectiveEquipmentResponse, locationOptionsResponse] = await Promise.all([
+        supabase.from("warning_symbols").select("*"),
+        supabase.from("protective_equipment").select("*"),
+        supabase.from("config_options").select("*").eq("type", "location"),
+      ])
 
-      if (item.id === 1) {
-        console.log("[v0] Item 1 warningSymbolIds:", warningSymbolIds)
-        console.log("[v0] Item 1 protectiveEquipmentIds:", protectiveEquipmentIds)
+      if (warningSymbolsResponse.error) {
+        console.error("[v0] Warning symbols query error:", warningSymbolsResponse.error)
+      } else {
+        warningSymbols = warningSymbolsResponse.data || []
       }
 
-      const configItems = item.msds_config_items || []
+      if (protectiveEquipmentResponse.error) {
+        console.error("[v0] Protective equipment query error:", protectiveEquipmentResponse.error)
+      } else {
+        protectiveEquipment = protectiveEquipmentResponse.data || []
+      }
 
-      const receptionRaw = configItems
-        .filter((c: { config_type: string }) => c.config_type === "reception")
-        .map((c: { config_value: string }) => c.config_value)
-
-      // config_value가 "19,20,17" 형태의 쉼표 구분 문자열일 수 있음
-      const reception: string[] = []
-      receptionRaw.forEach((val: string) => {
-        // 쉼표로 분리된 ID들을 처리
-        const ids = val
-          .split(",")
-          .map((id: string) => id.trim())
-          .filter(Boolean)
-        ids.forEach((id: string) => {
-          // ID를 장소 이름으로 변환 (예: "19" -> "LNG 3호기 CPP")
-          const locationName = locationMap[id] || locationMap[id.padStart(2, "0")] || id
-          if (!reception.includes(locationName)) {
-            reception.push(locationName)
-          }
+      if (locationOptionsResponse.error) {
+        console.error("[v0] Location options query error:", locationOptionsResponse.error)
+      } else {
+        ;(locationOptionsResponse.data || []).forEach((opt: { value: string; label: string }) => {
+          locationMap[opt.value] = opt.label
         })
-      })
-
-      const laws = configItems
-        .filter((c: { config_type: string }) => c.config_type === "laws")
-        .map((c: { config_value: string }) => c.config_value)
-
-      const warningSymbolsData = warningSymbols
-        .filter((symbol) => warningSymbolIds.includes(symbol.id))
-        .map((symbol) => ({
-          id: symbol.id,
-          name: symbol.name,
-          description: symbol.description,
-          imageUrl: symbol.image_url,
-          category: symbol.category,
-          isActive: symbol.is_active,
-        }))
-
-      const protectiveEquipmentData = protectiveEquipment
-        .filter((equipment) => protectiveEquipmentIds.includes(equipment.id))
-        .map((equipment) => ({
-          id: equipment.id,
-          name: equipment.name,
-          description: equipment.description,
-          imageUrl: equipment.image_url,
-          category: equipment.category,
-          isActive: equipment.is_active,
-        }))
-
-      return {
-        id: item.id,
-        name: item.name,
-        pdfFileName: item.pdf_file_name || "",
-        pdfUrl: item.pdf_file_url || "",
-        hazards: protectiveEquipmentIds,
-        usage: item.usage || "",
-        reception, // 변환된 장소 이름 배열
-        laws,
-        warningSymbols: warningSymbolIds,
-        warningSymbolsData,
-        protectiveEquipmentData,
-        qrCode: item.qr_code || "",
       }
-    })
 
-    console.log("[v0] Returning", enrichedItems.length, "MSDS items from DB")
+      console.log(
+        `[v0] Step 3: ✓ Loaded ${warningSymbols.length} warning symbols, ${protectiveEquipment.length} protective equipment`,
+      )
+    } catch (queryError) {
+      console.error("[v0] Error fetching reference data:", queryError)
+      // 참조 데이터 로드 실패해도 계속 진행
+    }
+
+    let enrichedItems
+    try {
+      enrichedItems = msdsItems.map((item) => {
+        const warningSymbolIds =
+          item.msds_warning_symbols?.map((ws: { warning_symbol_id: string }) => ws.warning_symbol_id) || []
+        const protectiveEquipmentIds =
+          item.msds_protective_equipment?.map(
+            (pe: { protective_equipment_id: string }) => pe.protective_equipment_id,
+          ) || []
+
+        const configItems = item.msds_config_items || []
+
+        const receptionRaw = configItems
+          .filter((c: { config_type: string }) => c.config_type === "reception")
+          .map((c: { config_value: string }) => c.config_value)
+
+        const reception: string[] = []
+        receptionRaw.forEach((val: string) => {
+          const ids = val
+            .split(",")
+            .map((id: string) => id.trim())
+            .filter(Boolean)
+          ids.forEach((id: string) => {
+            const locationName = locationMap[id] || locationMap[id.padStart(2, "0")] || id
+            if (!reception.includes(locationName)) {
+              reception.push(locationName)
+            }
+          })
+        })
+
+        const laws = configItems
+          .filter((c: { config_type: string }) => c.config_type === "laws")
+          .map((c: { config_value: string }) => c.config_value)
+
+        const warningSymbolsData = warningSymbols
+          .filter((symbol) => warningSymbolIds.includes(symbol.id))
+          .map((symbol) => ({
+            id: symbol.id,
+            name: symbol.name,
+            description: symbol.description,
+            imageUrl: symbol.image_url,
+            category: symbol.category,
+            isActive: symbol.is_active,
+          }))
+
+        const protectiveEquipmentData = protectiveEquipment
+          .filter((equipment) => protectiveEquipmentIds.includes(equipment.id))
+          .map((equipment) => ({
+            id: equipment.id,
+            name: equipment.name,
+            description: equipment.description,
+            imageUrl: equipment.image_url,
+            category: equipment.category,
+            isActive: equipment.is_active,
+          }))
+
+        return {
+          id: item.id,
+          name: item.name,
+          pdfFileName: item.pdf_file_name || "",
+          pdfUrl: item.pdf_file_url || "",
+          hazards: protectiveEquipmentIds,
+          usage: item.usage || "",
+          reception,
+          laws,
+          warningSymbols: warningSymbolIds,
+          warningSymbolsData,
+          protectiveEquipmentData,
+          qrCode: item.qr_code || "",
+        }
+      })
+    } catch (transformError: any) {
+      console.error("[v0] Error transforming data:", transformError)
+
+      return NextResponse.json({
+        items: SAMPLE_DATA,
+        usingSampleData: true,
+        error: `Data transformation failed: ${transformError.message}`,
+      })
+    }
+
+    console.log(`[v0] Step 4: ✓ Successfully returning ${enrichedItems.length} MSDS items`)
+    console.log("[v0] ========== MSDS GET API END ==========")
+
     return NextResponse.json({ items: enrichedItems })
   } catch (err: any) {
-    console.error("[v0] MSDS API error:", err)
-    return NextResponse.json(
-      {
-        items: [],
-        error: err?.message || "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("[v0] ========== MSDS API FATAL ERROR ==========")
+    console.error("[v0] Error message:", err?.message)
+    console.error("[v0] Error name:", err?.name)
+    console.error("[v0] Error stack:", err?.stack)
+
+    return NextResponse.json({
+      items: SAMPLE_DATA,
+      usingSampleData: true,
+      error: `Fatal error: ${err?.message || "Unknown error"}`,
+    })
   }
 }
 
