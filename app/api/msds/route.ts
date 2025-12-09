@@ -50,7 +50,7 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json({ items: [], error: "Database connection not available" }, { status: 200 })
+      return NextResponse.json({ items: [] })
     }
 
     const { data: msdsItems, error: msdsError } = await supabase
@@ -65,7 +65,7 @@ export async function GET() {
 
     if (msdsError) {
       console.error("[v0] MSDS query error:", msdsError)
-      return NextResponse.json({ items: [], error: msdsError.message }, { status: 200 })
+      return NextResponse.json({ items: [], error: msdsError.message }, { status: 500 })
     }
 
     if (!msdsItems || msdsItems.length === 0) {
@@ -145,10 +145,12 @@ export async function GET() {
         name: item.name,
         pdfFileName: item.pdf_file_name || "",
         pdfUrl: item.pdf_file_url || "",
-        warningLabelPdfUrl: item.warning_label_pdf_url || "",
-        warningLabelPdfName: item.warning_label_pdf_name || "",
-        managementGuidelinesPdfUrl: item.management_guidelines_pdf_url || "",
-        managementGuidelinesPdfName: item.management_guidelines_pdf_name || "",
+        warningLabelPdfUrl: item.warning_label_pdf || "",
+        warningLabelPdfName: item.warning_label_pdf ? item.warning_label_pdf.split("/").pop() || "" : "",
+        managementGuidelinesPdfUrl: item.management_guidelines_pdf || "",
+        managementGuidelinesPdfName: item.management_guidelines_pdf
+          ? item.management_guidelines_pdf.split("/").pop() || ""
+          : "",
         hazards: protectiveEquipmentIds,
         usage: item.usage || "",
         reception,
@@ -171,7 +173,7 @@ export async function GET() {
         items: [],
         error: err?.message || "Unknown error",
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }
@@ -190,10 +192,8 @@ export async function POST(request: Request) {
         pdf_file_name: body.pdfFileName,
         pdf_file_url: body.pdfUrl,
         usage: body.usage,
-        warning_label_pdf_url: body.warningLabelPdfUrl,
-        warning_label_pdf_name: body.warningLabelPdfName,
-        management_guidelines_pdf_url: body.managementGuidelinesPdfUrl,
-        management_guidelines_pdf_name: body.managementGuidelinesPdfName,
+        warning_label_pdf: body.warningLabelPdfUrl,
+        management_guidelines_pdf: body.managementGuidelinesPdfUrl,
       })
       .select()
       .single()
