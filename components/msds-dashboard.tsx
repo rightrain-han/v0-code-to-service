@@ -60,6 +60,13 @@ function MsdsDashboard() {
         fetch("/api/protective-equipment"),
       ])
 
+      if (!msdsRes.ok || !symbolsRes.ok || !equipmentRes.ok) {
+        console.error("[v0] API request failed")
+        setDbStatus("error")
+        setLoading(false)
+        return
+      }
+
       const msdsData = await msdsRes.json()
       const symbolsData = await symbolsRes.json()
       const equipmentData = await equipmentRes.json()

@@ -50,7 +50,7 @@ export async function GET() {
     const supabase = createAdminClient()
 
     if (!supabase) {
-      return NextResponse.json({ items: [] })
+      return NextResponse.json({ items: [], error: "Database connection not available" }, { status: 200 })
     }
 
     const { data: msdsItems, error: msdsError } = await supabase
@@ -65,7 +65,7 @@ export async function GET() {
 
     if (msdsError) {
       console.error("[v0] MSDS query error:", msdsError)
-      return NextResponse.json({ items: [], error: msdsError.message }, { status: 500 })
+      return NextResponse.json({ items: [], error: msdsError.message }, { status: 200 })
     }
 
     if (!msdsItems || msdsItems.length === 0) {
@@ -171,7 +171,7 @@ export async function GET() {
         items: [],
         error: err?.message || "Unknown error",
       },
-      { status: 500 },
+      { status: 200 },
     )
   }
 }
