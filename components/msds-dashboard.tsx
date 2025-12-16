@@ -358,43 +358,77 @@ function MsdsDashboard() {
                 className="group cursor-pointer hover:shadow-lg transition-all duration-200 bg-white border border-gray-200 overflow-hidden relative"
                 onClick={(e) => handleCardClick(item, e)}
               >
-                <div
-                  className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
-                    item.pdfUrl ? "bg-green-500" : "bg-gray-300"
-                  }`}
-                  title={item.pdfUrl ? "PDF 파일 있음" : "PDF 파일 없음"}
-                />
+                <div className="absolute top-3 right-3 flex flex-col gap-1">
+                  {/* MSDS PDF */}
+                  {item.pdfUrl && (
+                    <div className="flex gap-1 bg-white/90 backdrop-blur-sm rounded p-1 shadow-sm">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
+                        }}
+                        title="MSDS PDF 보기"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={(e) => handlePdfDownload(item, e)}
+                        title="MSDS PDF 다운로드"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                  {/* 경고표지 PDF */}
+                  {item.warningLabelPdf && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 bg-orange-50 text-orange-600 hover:text-orange-700 hover:bg-orange-100 shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const link = document.createElement("a")
+                        link.href = item.warningLabelPdf
+                        link.download = `경고표지_${item.name}.pdf`
+                        link.click()
+                      }}
+                      title="경고표지 PDF 다운로드"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {/* 관리요령 PDF */}
+                  {item.managementGuidelinesPdf && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 bg-green-50 text-green-600 hover:text-green-700 hover:bg-green-100 shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const link = document.createElement("a")
+                        link.href = item.managementGuidelinesPdf
+                        link.download = `관리요령_${item.name}.pdf`
+                        link.click()
+                      }}
+                      title="관리요령 PDF 다운로드"
+                    >
+                      <Shield className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
 
                 <CardContent className="p-4">
                   {/* 물질명 */}
-                  <h3 className="font-bold text-gray-900 text-base mb-2 pr-6">{item.name}</h3>
+                  <h3 className="font-bold text-gray-900 text-base mb-2 pr-20">{item.name}</h3>
 
                   <div className="flex items-center justify-between mb-3">
                     <Badge className={`text-xs font-medium ${getUsageColor(item.usage)}`}>{item.usage}</Badge>
-
-                    {item.pdfUrl && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(item.pdfUrl || `/pdfs/${item.pdfFileName}`, "_blank")
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={(e) => handlePdfDownload(item, e)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
 
                   <div className="mb-3">

@@ -1,11 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-
 import { useState } from "react"
-
 import type React from "react"
-
 import Link from "next/link"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,7 +15,23 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import ImageUpload from "./image-upload"
 import ExcelUpload from "./excel-upload"
-import { Trash2, Plus, QrCode, Upload, Edit, FileText, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Trash2,
+  Plus,
+  QrCode,
+  Upload,
+  Edit,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Download,
+  ChevronsLeft,
+  ChevronsRight,
+  AlertTriangle,
+  Shield,
+  X,
+} from "lucide-react"
 
 import type { MsdsItem, WarningSymbol, ProtectiveEquipment } from "@/types/msds"
 import { QRPrintModal } from "@/components/qr-print-modal"
@@ -56,6 +69,8 @@ interface FormData {
   reception: string[]
   laws: string[]
   warningSymbols: string[]
+  warningLabelPdf?: string // Added
+  managementGuidelinesPdf?: string // Added
 }
 
 const initialFormData: FormData = {
@@ -111,10 +126,14 @@ export default function AdminDashboard() {
     imageUrl: "",
   })
 
-  const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [uploadingPdf, setUploadingPdf] = useState<number | false>(false)
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null)
+  const [editWarningPdfFile, setEditWarningPdfFile] = useState<File | null>(null)
+  const [editManagementPdfFile, setEditManagementPdfFile] = useState<File | null>(null)
+  const [uploadingWarningPdf, setUploadingWarningPdf] = useState<number | false>(false)
+  const [uploadingManagementPdf, setUploadingManagementPdf] = useState<number | false>(false)
 
-  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false) // Added
 
   const receptionOptions = Array.from(new Set(msdsItems.flatMap((item) => item.reception || []))).sort()
 
@@ -187,13 +206,20 @@ export default function AdminDashboard() {
   const endIndex = startIndex + itemsPerPage
   const paginatedItems = msdsItems.slice(startIndex, endIndex)
 
-  const handlePdfUpload = async (item: MsdsItem, file: File) => {
+  const handlePdfUpload = async (msdsId: number, file: File, type: "msds" | "warning" | "management") => {
     try {
-      setUploadingPdf(item.id)
+      if (type === "msds") setUploadingPdf(msdsId)
+      if (type === "warning") setUploadingWarningPdf(msdsId)
+      if (type === "management") setUploadingManagementPdf(msdsId)
+
       const formData = new FormData()
       formData.append("file", file)
-      formData.append("msdsId", item.id.toString())
-      formData.append("msdsName", item.name)
+      formData.append("msdsId", msdsId.toString())
+      // Pass msdsName if editing existing item, otherwise it might not be available
+      if (editingItem) {
+        formData.append("msdsName", editingItem.name)
+      }
+      formData.append("type", type)
 
       const response = await fetch("/api/upload/pdf", {
         method: "POST",
@@ -202,34 +228,51 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "PDF 업로드 실패")
+        throw new Error(errorData.error || `${type} PDF 업로드 실패`)
       }
 
-      await loadMsdsItems()
-      showMessage("success", "PDF가 업로드되었습니다.")
+      const data = await response.json()
+
+      // Update editingItem state directly with the new URL and filename
+      if (editingItem) {
+        if (type === "msds") {
+          setEditingItem({
+            ...editingItem,
+            pdfFileName: data.fileName,
+            pdfUrl: data.url,
+          })
+          setEditPdfFile(null) // Clear the selected file after successful upload
+        } else if (type === "warning") {
+          setEditingItem({ ...editingItem, warningLabelPdf: data.url })
+          setEditWarningPdfFile(null)
+        } else if (type === "management") {
+          setEditingItem({ ...editingItem, managementGuidelinesPdf: data.url })
+          setEditManagementPdfFile(null)
+        }
+      }
+
+      await loadMsdsItems() // Reload to ensure the list view is updated
+      showMessage("success", `${type} PDF가 업로드되었습니다.`)
     } catch (error) {
-      console.error("[v0] PDF upload error:", error)
-      showMessage("error", error instanceof Error ? error.message : "PDF 업로드 중 오류가 발생했습니다.")
+      console.error(`[v0] ${type} PDF upload error:`, error)
+      showMessage("error", error instanceof Error ? error.message : `${type} PDF 업로드 중 오류가 발생했습니다.`)
     } finally {
-      setUploadingPdf(false)
+      if (type === "msds") setUploadingPdf(false)
+      if (type === "warning") setUploadingWarningPdf(false)
+      if (type === "management") setUploadingManagementPdf(false)
     }
   }
 
-  const handleEdit = (item: MsdsItem) => {
-    setEditingItem(item)
-    setEditPdfFile(null)
-    setShowEditDialog(true)
-  }
-
-  const handleUploadEditPdf = async () => {
-    if (!editPdfFile || !editingItem) return
+  const handleUploadWarningPdf = async () => {
+    if (!editWarningPdfFile || !editingItem) return
 
     try {
-      setUploadingPdf(editingItem.id)
+      setUploadingWarningPdf(editingItem.id)
       const formData = new FormData()
-      formData.append("file", editPdfFile)
+      formData.append("file", editWarningPdfFile)
       formData.append("msdsId", editingItem.id.toString())
       formData.append("msdsName", editingItem.name)
+      formData.append("type", "warning") // 파일 타입 구분
 
       const response = await fetch("/api/upload/pdf", {
         method: "POST",
@@ -238,23 +281,80 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "PDF 업로드 실패")
+        throw new Error(errorData.error || "경고표지 PDF 업로드 실패")
       }
 
       const data = await response.json()
       setEditingItem({
         ...editingItem,
-        pdfFileName: data.fileName,
-        pdfUrl: data.url,
+        warningLabelPdf: data.url,
       })
-      setEditPdfFile(null)
-      showMessage("success", "PDF 파일이 업로드되었습니다.")
+      setEditWarningPdfFile(null)
+      showMessage("success", "경고표지 PDF가 업로드되었습니다.")
     } catch (error) {
-      console.error("[v0] PDF 업로드 오류:", error)
-      showMessage("error", error instanceof Error ? error.message : "PDF 업로드 중 오류가 발생했습니다.")
+      console.error("[v0] 경고표지 PDF 업로드 오류:", error)
+      showMessage("error", error instanceof Error ? error.message : "경고표지 PDF 업로드 중 오류가 발생했습니다.")
     } finally {
-      setUploadingPdf(false)
+      setUploadingWarningPdf(false)
     }
+  }
+
+  const handleUploadManagementPdf = async () => {
+    if (!editManagementPdfFile || !editingItem) return
+
+    try {
+      setUploadingManagementPdf(editingItem.id)
+      const formData = new FormData()
+      formData.append("file", editManagementPdfFile)
+      formData.append("msdsId", editingItem.id.toString())
+      formData.append("msdsName", editingItem.name)
+      formData.append("type", "management") // 파일 타입 구분
+
+      const response = await fetch("/api/upload/pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "관리요령 PDF 업로드 실패")
+      }
+
+      const data = await response.json()
+      setEditingItem({
+        ...editingItem,
+        managementGuidelinesPdf: data.url,
+      })
+      setEditManagementPdfFile(null)
+      showMessage("success", "관리요령 PDF가 업로드되었습니다.")
+    } catch (error) {
+      console.error("[v0] 관리요령 PDF 업로드 오류:", error)
+      showMessage("error", error instanceof Error ? error.message : "관리요령 PDF 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingManagementPdf(false)
+    }
+  }
+
+  const handleEdit = (item: any) => {
+    console.log("[v0] Editing item:", item)
+    console.log("[v0] Item warningSymbols:", item.warningSymbols)
+    console.log("[v0] Item protectiveEquipment:", item.protectiveEquipment)
+
+    setEditingItem({
+      ...item,
+      // warningSymbols는 이미 ID 문자열 배열
+      warningSymbols: item.warningSymbols || [],
+      // hazards도 이미 ID 문자열 배열
+      hazards: item.hazards || [],
+      reception: item.reception || [],
+      laws: item.laws || [],
+      warningLabelPdf: item.warningLabelPdf || "",
+      managementGuidelinesPdf: item.managementGuidelinesPdf || "",
+    })
+    setEditPdfFile(null)
+    setEditWarningPdfFile(null)
+    setEditManagementPdfFile(null)
+    setShowEditDialog(true)
   }
 
   const handleSaveEdit = async () => {
@@ -273,6 +373,8 @@ export default function AdminDashboard() {
           laws: editingItem.laws || [],
           pdfFileName: editingItem.pdfFileName,
           pdfUrl: editingItem.pdfUrl,
+          warningLabelPdf: editingItem.warningLabelPdf,
+          managementGuidelinesPdf: editingItem.managementGuidelinesPdf,
         }),
       })
 
@@ -282,10 +384,12 @@ export default function AdminDashboard() {
       setShowEditDialog(false)
       setEditingItem(null)
       setEditPdfFile(null)
+      setEditWarningPdfFile(null)
+      setEditManagementPdfFile(null)
       showMessage("success", "MSDS 항목이 수정되었습니다.")
     } catch (error) {
-      console.error("저장 오류:", error)
-      showMessage("error", "저장 중 오류가 발생했습니다.")
+      console.error("[v0] MSDS 수정 오류:", error)
+      showMessage("error", "MSDS 항목 수정 중 오류가 발생했습니다.")
     } finally {
       setSubmitting(false)
     }
@@ -433,6 +537,42 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleUploadEditPdf = async () => {
+    if (!editPdfFile || !editingItem) return
+
+    try {
+      setUploadingPdf(editingItem.id)
+      const formData = new FormData()
+      formData.append("file", editPdfFile)
+      formData.append("msdsId", editingItem.id.toString())
+      formData.append("msdsName", editingItem.name)
+
+      const response = await fetch("/api/upload/pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "PDF 업로드 실패")
+      }
+
+      const data = await response.json()
+      setEditingItem({
+        ...editingItem,
+        pdfFileName: data.fileName,
+        pdfUrl: data.url,
+      })
+      setEditPdfFile(null)
+      showMessage("success", "PDF가 업로드되었습니다.")
+    } catch (error) {
+      console.error("[v0] PDF upload error:", error)
+      showMessage("error", error instanceof Error ? error.message : "PDF 업로드 중 오류가 발생했습니다.")
+    } finally {
+      setUploadingPdf(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -552,50 +692,79 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* 오른쪽: 버튼 그룹 */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* QR코드 버튼 */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedItem(item)
-                            setShowQrModal(true)
-                          }}
-                        >
-                          <QrCode className="w-4 h-4 mr-1" />
-                          QR코드
-                        </Button>
+                      <div className="flex items-center gap-2">
+                        {/* MSDS PDF */}
+                        {item.pdfUrl && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.open(item.pdfUrl, "_blank")}
+                              title="MSDS PDF 미리보기"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const link = document.createElement("a")
+                                link.href = item.pdfUrl
+                                link.download = item.pdfFileName || `${item.name}_MSDS.pdf`
+                                link.click()
+                              }}
+                              title="MSDS PDF 다운로드"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="ml-1 text-xs">MSDS</span>
+                            </Button>
+                          </>
+                        )}
 
-                        {/* PDF 업로드 버튼 */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingPdf === item.id}
-                          onClick={() => {
-                            const input = document.createElement("input")
-                            input.type = "file"
-                            input.accept = "application/pdf"
-                            input.onchange = (e) => {
-                              const file = (e.target as HTMLInputElement).files?.[0]
-                              if (file) handlePdfUpload(item, file)
-                            }
-                            input.click()
-                          }}
-                        >
-                          <Upload className="w-4 h-4 mr-1" />
-                          {uploadingPdf === item.id ? "업로드 중..." : "PDF 업로드"}
-                        </Button>
+                        {/* 경고표지 PDF */}
+                        {item.warningLabelPdf && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const link = document.createElement("a")
+                              link.href = item.warningLabelPdf
+                              link.download = `${item.name}_경고표지.pdf`
+                              link.click()
+                            }}
+                            title="경고표지 PDF 다운로드"
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="ml-1 text-xs">경고표지</span>
+                          </Button>
+                        )}
 
-                        {/* 수정 버튼 */}
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                          <Edit className="w-4 h-4 mr-1" />
-                          수정
-                        </Button>
+                        {/* 관리요령 PDF */}
+                        {item.managementGuidelinesPdf && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const link = document.createElement("a")
+                              link.href = item.managementGuidelinesPdf
+                              link.download = `${item.name}_관리요령.pdf`
+                              link.click()
+                            }}
+                            title="관리요령 PDF 다운로드"
+                          >
+                            <Shield className="h-4 w-4" />
+                            <span className="ml-1 text-xs">관리요령</span>
+                          </Button>
+                        )}
 
-                        {/* 삭제 버튼 */}
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          삭제
+                        <Button size="sm" variant="ghost" onClick={() => handleGenerateQR(item)}>
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
@@ -610,6 +779,16 @@ export default function AdminDashboard() {
                   {startIndex + 1}-{Math.min(endIndex, msdsItems.length)} / {msdsItems.length}개 항목
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="첫 페이지"
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -652,6 +831,16 @@ export default function AdminDashboard() {
                   >
                     다음
                     <ChevronRight className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="마지막 페이지"
+                  >
+                    <ChevronsRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -757,33 +946,158 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              {/* MSDS PDF 업로드 */}
               <div>
-                <Label>PDF 파일</Label>
-                <div className="space-y-2 mt-2">
-                  {editingItem.pdfFileName && (
-                    <div className="flex items-center gap-2 p-2 bg-muted rounded">
-                      <FileText className="h-4 w-4" />
-                      <span className="text-sm flex-1">{editingItem.pdfFileName}</span>
+                <Label>MSDS PDF</Label>
+                {editingItem.pdfUrl && !editPdfFile && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border mt-2">
+                    <FileText className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-700 flex-1 truncate">{editingItem.pdfFileName}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingItem({ ...editingItem, pdfUrl: "", pdfFileName: "" })
+                      }}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="mt-2">
+                  <Input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setEditPdfFile(file)
+                      }
+                    }}
+                  />
+                  {editPdfFile && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm text-gray-600">{editPdfFile.name}</span>
                       <Button
+                        type="button"
+                        variant="outline"
                         size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingItem({ ...editingItem, pdfFileName: "", pdfUrl: "" })}
+                        onClick={async () => {
+                          if (!editingItem) return
+                          await handlePdfUpload(editingItem.id, editPdfFile, "msds")
+                        }}
+                        disabled={uploadingPdf === editingItem.id}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {uploadingPdf === editingItem.id ? "업로드 중..." : "업로드"}
                       </Button>
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setEditPdfFile(e.target.files?.[0] || null)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleUploadEditPdf} disabled={!editPdfFile || uploadingPdf} size="sm">
-                      {uploadingPdf ? "업로드 중..." : "업로드"}
+                </div>
+              </div>
+
+              <div>
+                <Label>경고표지 PDF</Label>
+                {editingItem.warningLabelPdf && !editWarningPdfFile && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border mt-2">
+                    <FileText className="w-4 h-4 text-orange-500" />
+                    <span className="text-sm text-gray-700 flex-1 truncate">
+                      {editingItem.warningLabelPdf.split("/").pop()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingItem({ ...editingItem, warningLabelPdf: "" })
+                      }}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
+                )}
+                <div className="mt-2">
+                  <Input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setEditWarningPdfFile(file)
+                      }
+                    }}
+                  />
+                  {editWarningPdfFile && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm text-gray-600">{editWarningPdfFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!editingItem) return
+                          await handlePdfUpload(editingItem.id, editWarningPdfFile, "warning")
+                        }}
+                        disabled={uploadingWarningPdf === editingItem.id}
+                      >
+                        {uploadingWarningPdf === editingItem.id ? "업로드 중..." : "업로드"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label>관리요령 PDF</Label>
+                {editingItem.managementGuidelinesPdf && !editManagementPdfFile && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border mt-2">
+                    <FileText className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 flex-1 truncate">
+                      {editingItem.managementGuidelinesPdf.split("/").pop()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingItem({ ...editingItem, managementGuidelinesPdf: "" })
+                      }}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="mt-2">
+                  <Input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setEditManagementPdfFile(file)
+                      }
+                    }}
+                  />
+                  {editManagementPdfFile && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm text-gray-600">{editManagementPdfFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!editingItem) return
+                          await handlePdfUpload(editingItem.id, editManagementPdfFile, "management")
+                        }}
+                        disabled={uploadingManagementPdf === editingItem.id}
+                      >
+                        {uploadingManagementPdf === editingItem.id ? "업로드 중..." : "업로드"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -795,8 +1109,9 @@ export default function AdminDashboard() {
                     <div key={symbol.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`edit-symbol-${symbol.id}`}
-                        checked={editingItem.warningSymbols?.includes(symbol.id)}
+                        checked={editingItem.warningSymbols?.includes(symbol.id) || false}
                         onCheckedChange={(checked) => {
+                          console.log("[v0] Warning symbol checkbox changed:", symbol.id, checked)
                           const current = editingItem.warningSymbols || []
                           if (checked) {
                             setEditingItem({ ...editingItem, warningSymbols: [...current, symbol.id] })
@@ -824,8 +1139,9 @@ export default function AdminDashboard() {
                     <div key={equipment.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`edit-equipment-${equipment.id}`}
-                        checked={editingItem.hazards?.includes(equipment.id)}
+                        checked={editingItem.hazards?.includes(equipment.id) || false}
                         onCheckedChange={(checked) => {
+                          console.log("[v0] Protective equipment checkbox changed:", equipment.id, checked)
                           const current = editingItem.hazards || []
                           if (checked) {
                             setEditingItem({ ...editingItem, hazards: [...current, equipment.id] })
